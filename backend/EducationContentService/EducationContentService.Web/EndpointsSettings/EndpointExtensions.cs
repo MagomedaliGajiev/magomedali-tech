@@ -1,7 +1,8 @@
 ﻿using System.Reflection;
+using EducationContentService.Core.Features;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace EducationContentService.Core.EndpointsSettings;
+namespace EducationContentService.Web.EndpointsSettings;
 
 public static class EndpointExtensions
 {

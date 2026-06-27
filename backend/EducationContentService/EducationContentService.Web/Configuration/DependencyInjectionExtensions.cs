@@ -1,10 +1,11 @@
-﻿using EducationContentService.Core.EndpointsSettings;
+﻿using EducationContentService.Core.Features;
 using EducationContentService.Core.Features.Lessons;
+using EducationContentService.Web.EndpointsSettings;
 using Microsoft.OpenApi;
 using Serilog;
 using Serilog.Exceptions;
 
-namespace EducationContentService.Core.Configuration;
+namespace EducationContentService.Web.Configuration;
 
 public static class DependencyInjectionExtensions
 {
@@ -15,7 +16,7 @@ public static class DependencyInjectionExtensions
         return services
             .AddSerilogLogging(configuration)
             .AddOpenApiSpec()
-            .AddEndpoints(typeof(Program).Assembly);
+            .AddEndpoints(typeof(IEndpoint).Assembly);
     }
 
     private static IServiceCollection AddOpenApiSpec(this IServiceCollection services)

@@ -1,7 +1,7 @@
-﻿using EducationContentService.Core.EndpointsSettings;
+﻿using EducationContentService.Web.EndpointsSettings;
 using Serilog;
 
-namespace EducationContentService.Core.Configuration;
+namespace EducationContentService.Web.Configuration;
 
 public static class AppExtensions
 {

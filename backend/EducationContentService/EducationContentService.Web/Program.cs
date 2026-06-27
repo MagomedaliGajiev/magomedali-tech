@@ -1,5 +1,5 @@
 using System.Globalization;
-using EducationContentService.Core.Configuration;
+using EducationContentService.Web.Configuration;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
