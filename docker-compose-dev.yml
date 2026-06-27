@@ -1,4 +1,18 @@
 services:
+  education-content-service:
+    container_name: education-content-service
+    build:
+      context: ./backend/EducationContentService
+      dockerfile: Dockerfile
+    ports:
+      - "9001:9001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:9001
+    env_file:
+      - path: education.service.env
+        required: false
+    restart: always
   seq:
     container_name: seq-magomedali-tech
     image: datalust/seq:latest

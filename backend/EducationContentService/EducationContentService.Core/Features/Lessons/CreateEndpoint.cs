@@ -1,4 +1,6 @@
-﻿using EducationContentService.Core.EndpointsSettings;
+﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Logging;
 
 namespace EducationContentService.Core.Features.Lessons;
 
