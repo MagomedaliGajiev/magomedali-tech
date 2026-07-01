@@ -1,9 +1,10 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Text.RegularExpressions;
+using CSharpFunctionalExtensions;
 using EducationContentService.Domain.Shared;
 
 namespace EducationContentService.Domain.ValueObjects;
 
-public record Title
+public partial record Title
 {
     public const int MAX_LENGTH = 200;
 
@@ -16,11 +17,21 @@ public record Title
 
     public static Result<Title, Error> Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length > MAX_LENGTH)
+        if (string.IsNullOrWhiteSpace(value))
         {
-            return GeneralErrors.ValueIsInvalid("заголовок");
+            return GeneralErrors.ValueIsInvalid("title");
         }
 
-        return new Title(value);
+        string normalized = SpaceRemoveRegex().Replace(value.Trim(), " ");
+
+        if (normalized.Length > MAX_LENGTH)
+        {
+            return GeneralErrors.ValueIsInvalid("title");
+        }
+
+        return new Title(normalized);
     }
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex SpaceRemoveRegex();
 }
