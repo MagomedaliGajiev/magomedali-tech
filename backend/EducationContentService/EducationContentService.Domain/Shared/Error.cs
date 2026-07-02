@@ -1,4 +1,6 @@
-﻿namespace EducationContentService.Domain.Shared;
+﻿using System.Text.Json.Serialization;
+
+namespace EducationContentService.Domain.Shared;
 
 public record ErrorMessage(string Code, string Message, string? InvalidField = null);
 
@@ -8,9 +10,8 @@ public record Error
 
     public ErrorType Type { get; }
 
-    public string? InvalidField { get; }
-
-    private Error(IEnumerable<ErrorMessage> messages, ErrorType type)
+    [JsonConstructor]
+    private Error(IReadOnlyList<ErrorMessage> messages, ErrorType type)
     {
         Messages = messages.ToArray();
         Type = type;
@@ -34,25 +35,26 @@ public record Error
     public static Error Authorization(string code, string message, string? invalidField = null) =>
         new([new ErrorMessage(code, message, invalidField)], ErrorType.AUTHORIZATION);
 
-    public static Error Validation(params IEnumerable<ErrorMessage> messages) =>
+    public static Error Validation(params IReadOnlyList<ErrorMessage> messages) =>
         new(messages, ErrorType.VALIDATION);
 
-    public static Error NotFound(params IEnumerable<ErrorMessage> messages) =>
+    public static Error NotFound(params IReadOnlyList<ErrorMessage> messages) =>
         new(messages, ErrorType.NOT_FOUND);
 
-    public static Error Failure(params IEnumerable<ErrorMessage> messages) =>
+    public static Error Failure(params IReadOnlyList<ErrorMessage> messages) =>
         new(messages, ErrorType.FAILURE);
 
-    public static Error Conflict(params IEnumerable<ErrorMessage> messages) =>
+    public static Error Conflict(params IReadOnlyList<ErrorMessage> messages) =>
         new(messages, ErrorType.CONFLICT);
 
-    public static Error Authentication(params IEnumerable<ErrorMessage> messages) =>
+    public static Error Authentication(params IReadOnlyList<ErrorMessage> messages) =>
         new(messages, ErrorType.AUTHENTICATION);
 
-    public static Error Authorization(params IEnumerable<ErrorMessage> messages) =>
+    public static Error Authorization(params IReadOnlyList<ErrorMessage> messages) =>
         new(messages, ErrorType.AUTHORIZATION);
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ErrorType
 {
     VALIDATION,

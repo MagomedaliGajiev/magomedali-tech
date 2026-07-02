@@ -7,5 +7,5 @@ namespace EducationContentService.Infrastructure.Postgres;
 
 public class LessonsRepository : ILessonsRepository
 {
-    public Task<Result<Guid, Error>> AddAsync(Lesson lesson) => throw new NotImplementedException();
+    public Task<Result<Guid, Error>> AddAsync(Lesson lesson, CancellationToken cancellationToken) => throw new NotImplementedException();
 }

@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Text.RegularExpressions;
+using CSharpFunctionalExtensions;
 using EducationContentService.Domain.Shared;
 
 namespace EducationContentService.Domain.ValueObjects;
@@ -16,9 +17,16 @@ public record Description
 
     public static Result<Description, Error> Create(string value)
     {
-        if (string.IsNullOrWhiteSpace(value) || value.Length > MAX_LENGTH)
+        if (string.IsNullOrWhiteSpace(value))
         {
-            return GeneralErrors.ValueIsInvalid("описание");
+            return GeneralErrors.ValueIsInvalid("description");
+        }
+
+        string normalized = Regex.Replace(value.Trim(), @"\s+", " ");
+
+        if (normalized.Length > MAX_LENGTH)
+        {
+            return GeneralErrors.ValueIsInvalid("description");
         }
 
         return new Description(value);
