@@ -1,6 +1,4 @@
 using System.Globalization;
-using EducationContentService.Core.Features.Lessons;
-using EducationContentService.Infrastructure.Postgres;
 using EducationContentService.Web.Configuration;
 using Serilog;
 
@@ -16,10 +14,6 @@ try
     WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddConfiguration(builder.Configuration);
-
-    builder.Services.AddScoped<ILessonsRepository, LessonsRepository>();
-
-    builder.Services.AddScoped<CreateHandler>();
 
     WebApplication app = builder.Build();
 

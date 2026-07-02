@@ -1,6 +1,4 @@
-﻿using EducationContentService.Domain.ValueObjects;
-
-namespace EducationContentService.Domain.ModuleItems;
+﻿namespace EducationContentService.Domain.ModuleItems;
 
 public sealed class ModuleItem
 {

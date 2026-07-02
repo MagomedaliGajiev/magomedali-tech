@@ -4,7 +4,7 @@ using EducationContentService.Domain.Shared;
 
 namespace EducationContentService.Domain.ValueObjects;
 
-public partial record Title
+public record Title
 {
     public const int MAX_LENGTH = 200;
 
@@ -22,7 +22,7 @@ public partial record Title
             return GeneralErrors.ValueIsInvalid("title");
         }
 
-        string normalized = SpaceRemoveRegex().Replace(value.Trim(), " ");
+        string normalized = Regex.Replace(value.Trim(), @"\s+", " ");
 
         if (normalized.Length > MAX_LENGTH)
         {
@@ -31,7 +31,4 @@ public partial record Title
 
         return new Title(normalized);
     }
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex SpaceRemoveRegex();
 }
