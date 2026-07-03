@@ -41,8 +41,8 @@ public sealed class CreateEndpoint : IEndpoint
             Result<Guid, Error> result = await handler.Handle(request, cancellationToken);
 
             return result.IsSuccess
-                ? Results.Ok(request.Title)
-                : Results.BadRequest(result.Error);
+                ? Results.Ok(Envelope.Ok(result.Value))
+                : Results.BadRequest(Envelope.Fail(result.Error));
         });
     }
 }
