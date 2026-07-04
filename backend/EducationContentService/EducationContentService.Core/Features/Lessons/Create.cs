@@ -1,5 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
-using EducationContentService.Core.Extensions;
+using EducationContentService.Core.Endpoints;
 using EducationContentService.Core.Validation;
 using EducationContentService.Domain.Lessons;
 using EducationContentService.Domain.Shared;
@@ -7,7 +7,6 @@ using EducationContentService.Domain.ValueObjects;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
@@ -33,17 +32,10 @@ public sealed class CreateEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/lessons", async Task<IResult> (
+        app.MapPost("/lessons", async Task<EndpointResult<Guid>> (
             [FromBody] CreateLessonRequest request,
             [FromServices] CreateHandler handler,
-            CancellationToken cancellationToken) =>
-        {
-            Result<Guid, Error> result = await handler.Handle(request, cancellationToken);
-
-            return result.IsSuccess
-                ? Results.Ok(request.Title)
-                : Results.BadRequest(result.Error);
-        });
+            CancellationToken cancellationToken) => await handler.Handle(request, cancellationToken));
     }
 }
 

@@ -1,4 +1,5 @@
 ﻿using EducationContentService.Core;
+using EducationContentService.Core.Endpoints;
 using EducationContentService.Core.Features;
 using EducationContentService.Infrastructure.Postgres;
 using EducationContentService.Web.EndpointsSettings;
