@@ -1,4 +1,6 @@
 ﻿using EducationContentService.Domain.Lessons;
+using EducationContentService.Domain.ModuleItems;
+using EducationContentService.Domain.Modules;
 using Microsoft.EntityFrameworkCore;
 
 namespace EducationContentService.Infrastructure.Postgres;

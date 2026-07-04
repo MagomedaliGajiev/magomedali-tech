@@ -6,5 +6,5 @@ namespace EducationContentService.Core.Features.Lessons;
 
 public interface ILessonsRepository
 {
-    Task<Result<Guid, Error>> AddAsync(Lesson lesson, CancellationToken cancellationToken);
+    Task<Result<Guid, Error>> AddAsync(Lesson lesson, CancellationToken cancellationToken = default);
 }
