@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using EducationContentService.Core.Endpoints;
 using EducationContentService.Core.Features;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
