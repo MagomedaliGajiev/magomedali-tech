@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using IResult = Microsoft.AspNetCore.Http.IResult;
 
 namespace EducationContentService.Core.Features.Lessons;
 
