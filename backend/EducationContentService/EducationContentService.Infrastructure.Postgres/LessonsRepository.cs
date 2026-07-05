@@ -22,7 +22,7 @@ public class LessonsRepository : ILessonsRepository
 
     public async Task<Result<Guid, Error>> AddAsync(Lesson lesson, CancellationToken cancellationToken = default)
     {
-        _dbContext.Add(lesson);
+        _dbContext.Lessons.Add(lesson);
 
         try
         {

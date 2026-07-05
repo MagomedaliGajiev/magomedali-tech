@@ -22,13 +22,19 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             .HasColumnName("id")
             .ValueGeneratedNever();
 
-        builder.Property(l => l.Title)
-            .HasColumnName("title")
-            .HasMaxLength(Title.MAX_LENGTH)
-            .HasConversion(
-                title => title.Value,
-                value => Title.Create(value).Value)
-            .IsRequired();
+        builder.OwnsOne(l => l.Title, title =>
+        {
+            title.Property(t => t.Value)
+                .HasColumnName("title")
+                .HasMaxLength(Title.MAX_LENGTH)
+                .IsRequired();
+
+            title.HasIndex(t => t.Value)
+                .IsUnique()
+                .HasDatabaseName(LessonIndexes.TITLE)
+                .HasFilter("is_deleted = false");
+        });
+        builder.Navigation(l => l.Title).IsRequired();
 
         builder.Property(l => l.Description)
             .HasColumnName("description")
@@ -52,11 +58,6 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
 
         builder.Property(l => l.DeletedAt)
             .HasColumnName("deleted_at");
-
-        builder.HasIndex(l => l.Title)
-            .IsUnique()
-            .HasDatabaseName(LessonIndexes.TITLE)
-            .HasFilter("is_deleted = false");
 
         builder.HasQueryFilter(l => !l.IsDeleted);
     }

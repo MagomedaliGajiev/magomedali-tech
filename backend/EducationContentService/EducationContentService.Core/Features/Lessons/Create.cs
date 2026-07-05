@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using EducationContentService.Contracts.Lessons;
 using EducationContentService.Core.Endpoints;
 using EducationContentService.Core.Validation;
 using EducationContentService.Domain.Lessons;
@@ -12,8 +13,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 
 namespace EducationContentService.Core.Features.Lessons;
-
-public record CreateLessonRequest(string Title, string Description);
 
 public class CreateLessonsRequestValidator : AbstractValidator<CreateLessonRequest>
 {

@@ -10,6 +10,7 @@ public static class DependencyInjectionExtensions
     public static IServiceCollection AddCore(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<CreateHandler>();
+        services.AddScoped<GetHandler>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);
 

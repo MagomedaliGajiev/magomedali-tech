@@ -1,6 +1,5 @@
 using System.Globalization;
 using EducationContentService.Web.Configuration;
-using Microsoft.Extensions.Hosting;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()

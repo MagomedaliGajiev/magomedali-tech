@@ -1,11 +1,10 @@
-﻿using EducationContentService.Domain.Lessons;
-using EducationContentService.Domain.ModuleItems;
-using EducationContentService.Domain.Modules;
+﻿using EducationContentService.Core.Database;
+using EducationContentService.Domain.Lessons;
 using Microsoft.EntityFrameworkCore;
 
 namespace EducationContentService.Infrastructure.Postgres;
 
-public class EducationDbContext : DbContext
+public class EducationDbContext : DbContext, IEducationReadDbContext
 {
     public EducationDbContext(DbContextOptions<EducationDbContext> options)
         : base(options)
@@ -13,6 +12,8 @@ public class EducationDbContext : DbContext
     }
 
     public DbSet<Lesson> Lessons => Set<Lesson>();
+
+    public IQueryable<Lesson> LessonsQuery => Lessons.AsNoTracking().AsQueryable();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
