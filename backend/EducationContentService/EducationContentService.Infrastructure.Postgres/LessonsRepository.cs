@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Linq.Expressions;
+using CSharpFunctionalExtensions;
 using EducationContentService.Core.Features.Lessons;
 using EducationContentService.Domain.Lessons;
 using EducationContentService.Domain.Shared;
@@ -53,5 +54,17 @@ public class LessonsRepository : ILessonsRepository
                 lesson.Title.Value);
             return EducationErrors.DatabaseError();
         }
+    }
+
+    public async Task<Result<Lesson, Error>> GetBy(
+        Expression<Func<Lesson, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        Lesson? lesson = await _dbContext.Lessons.FirstOrDefaultAsync(predicate, cancellationToken);
+
+        if (lesson is null)
+            return GeneralErrors.NotFound(null, "lesson");
+
+        return lesson;
     }
 }

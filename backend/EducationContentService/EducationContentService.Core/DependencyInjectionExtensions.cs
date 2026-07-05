@@ -11,6 +11,7 @@ public static class DependencyInjectionExtensions
     {
         services.AddScoped<CreateHandler>();
         services.AddScoped<GetHandler>();
+        services.AddScoped<SoftDeleteHandler>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionExtensions).Assembly);
 

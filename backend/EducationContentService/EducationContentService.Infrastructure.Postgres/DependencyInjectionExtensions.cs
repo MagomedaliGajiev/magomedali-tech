@@ -34,6 +34,8 @@ public static class DependencyInjectionExtensions
         services.AddDbContextPool<EducationDbContext>(ConfigureDbContext);
         services.AddDbContextPool<IEducationReadDbContext, EducationDbContext>(ConfigureDbContext);
 
+        services.AddScoped<ITransactionManager, TransactionManager>();
+
         return services;
     }
 }
