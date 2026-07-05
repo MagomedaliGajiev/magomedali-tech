@@ -14,9 +14,9 @@ using Microsoft.Extensions.Logging;
 
 namespace EducationContentService.Core.Features.Lessons;
 
-public class CreateLessonsRequestValidator : AbstractValidator<CreateLessonRequest>
+public class CreateLessonRequestValidator : AbstractValidator<CreateLessonRequest>
 {
-    public CreateLessonsRequestValidator()
+    public CreateLessonRequestValidator()
     {
         RuleFor(r => r.Title)
             .MustBeValueObject(Title.Create);
@@ -62,10 +62,10 @@ public sealed class CreateHandler
             return validationResult.ToError();
         }
 
-        Title titleResult = Title.Create(request.Title).Value;
-        Description descriptionResult = Description.Create(request.Description).Value;
+        Title title = Title.Create(request.Title).Value;
+        Description description = Description.Create(request.Description).Value;
 
-        var lesson = new Lesson(Guid.NewGuid(), titleResult, descriptionResult);
+        var lesson = new Lesson(Guid.NewGuid(), title, description);
 
         Result<Guid, Error> result = await _lessonsRepository.AddAsync(lesson, cancellationToken);
 

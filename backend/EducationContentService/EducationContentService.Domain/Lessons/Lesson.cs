@@ -40,4 +40,11 @@ public sealed class Lesson
         DeletedAt = DateTime.UtcNow;
         UpdatedAt = DeletedAt.Value;
     }
+
+    public void UpdateInfo(Title title, Description description)
+    {
+        Title = title;
+        Description = description;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

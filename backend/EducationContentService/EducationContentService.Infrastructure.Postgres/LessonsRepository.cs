@@ -56,6 +56,38 @@ public class LessonsRepository : ILessonsRepository
         }
     }
 
+    public async Task<Result<Guid, Error>> UpdateAsync(Lesson lesson, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return lesson.Id;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx)
+        {
+            if (pgEx is { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: not null } &&
+                pgEx.ConstraintName.Contains(LessonIndexes.TITLE, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return EducationErrors.TitleConflict(lesson.Title.Value);
+            }
+
+            _logger.LogError(ex, "Database update error while updating lesson {Id}", lesson.Id);
+
+            return EducationErrors.DatabaseError();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Operation was cancelled while updating lesson {Id}", lesson.Id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while updating lesson {Id}", lesson.Id);
+            return EducationErrors.DatabaseError();
+        }
+    }
+
     public async Task<Result<Lesson, Error>> GetBy(
         Expression<Func<Lesson, bool>> predicate,
         CancellationToken cancellationToken = default)

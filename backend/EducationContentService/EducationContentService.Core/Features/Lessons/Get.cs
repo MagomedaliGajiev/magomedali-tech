@@ -15,9 +15,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EducationContentService.Core.Features.Lessons;
 
-public class GetLessonsRequestValidator : AbstractValidator<GetLessonRequest>
+public class GetLessonRequestValidator : AbstractValidator<GetLessonRequest>
 {
-    public GetLessonsRequestValidator()
+    public GetLessonRequestValidator()
     {
         RuleFor(r => r.Search)
             .MaximumLength(1000)

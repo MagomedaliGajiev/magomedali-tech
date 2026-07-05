@@ -9,6 +9,8 @@ public interface ILessonsRepository
 {
     Task<Result<Guid, Error>> AddAsync(Lesson lesson, CancellationToken cancellationToken = default);
 
+    Task<Result<Guid, Error>> UpdateAsync(Lesson lesson, CancellationToken cancellationToken = default);
+
     Task<Result<Lesson, Error>> GetBy(
         Expression<Func<Lesson, bool>> predicate,
         CancellationToken cancellationToken = default);
