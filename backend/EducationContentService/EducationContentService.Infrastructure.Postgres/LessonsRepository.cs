@@ -1,4 +1,5 @@
-﻿using CSharpFunctionalExtensions;
+﻿using System.Linq.Expressions;
+using CSharpFunctionalExtensions;
 using EducationContentService.Core.Features.Lessons;
 using EducationContentService.Domain.Lessons;
 using EducationContentService.Domain.Shared;
@@ -22,7 +23,7 @@ public class LessonsRepository : ILessonsRepository
 
     public async Task<Result<Guid, Error>> AddAsync(Lesson lesson, CancellationToken cancellationToken = default)
     {
-        _dbContext.Add(lesson);
+        _dbContext.Lessons.Add(lesson);
 
         try
         {
@@ -53,5 +54,49 @@ public class LessonsRepository : ILessonsRepository
                 lesson.Title.Value);
             return EducationErrors.DatabaseError();
         }
+    }
+
+    public async Task<Result<Guid, Error>> UpdateAsync(Lesson lesson, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return lesson.Id;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx)
+        {
+            if (pgEx is { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: not null } &&
+                pgEx.ConstraintName.Contains(LessonIndexes.TITLE, StringComparison.InvariantCultureIgnoreCase))
+            {
+                return EducationErrors.TitleConflict(lesson.Title.Value);
+            }
+
+            _logger.LogError(ex, "Database update error while updating lesson {Id}", lesson.Id);
+
+            return EducationErrors.DatabaseError();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Operation was cancelled while updating lesson {Id}", lesson.Id);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error while updating lesson {Id}", lesson.Id);
+            return EducationErrors.DatabaseError();
+        }
+    }
+
+    public async Task<Result<Lesson, Error>> GetBy(
+        Expression<Func<Lesson, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        Lesson? lesson = await _dbContext.Lessons.FirstOrDefaultAsync(predicate, cancellationToken);
+
+        if (lesson is null)
+            return GeneralErrors.NotFound(null, "lesson");
+
+        return lesson;
     }
 }

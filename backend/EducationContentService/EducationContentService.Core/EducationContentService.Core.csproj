@@ -11,12 +11,14 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\EducationContentService.Contracts\EducationContentService.Contracts.csproj" />
         <ProjectReference Include="..\EducationContentService.Domain\EducationContentService.Domain.csproj" />
     </ItemGroup>
 
     <ItemGroup>
       <PackageReference Include="FluentValidation" />
       <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+      <PackageReference Include="Microsoft.EntityFrameworkCore" />
     </ItemGroup>
 
 </Project>

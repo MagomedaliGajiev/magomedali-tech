@@ -1,4 +1,5 @@
-﻿using EducationContentService.Core.Features.Lessons;
+﻿using EducationContentService.Core.Database;
+using EducationContentService.Core.Features.Lessons;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +14,7 @@ public static class DependencyInjectionExtensions
     {
         services.AddScoped<ILessonsRepository, LessonsRepository>();
 
-        services.AddDbContextPool<EducationDbContext>((sp, options) =>
+        void ConfigureDbContext(IServiceProvider sp, DbContextOptionsBuilder options)
         {
             string? connectionString = configuration.GetConnectionString(Constants.DATABASE);
             IHostEnvironment hostEnvironment = sp.GetRequiredService<IHostEnvironment>();
@@ -28,7 +29,12 @@ public static class DependencyInjectionExtensions
             }
 
             options.UseLoggerFactory(loggerFactory);
-        });
+        }
+
+        services.AddDbContextPool<EducationDbContext>(ConfigureDbContext);
+        services.AddDbContextPool<IEducationReadDbContext, EducationDbContext>(ConfigureDbContext);
+
+        services.AddScoped<ITransactionManager, TransactionManager>();
 
         return services;
     }
