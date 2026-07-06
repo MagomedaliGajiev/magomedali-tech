@@ -2,11 +2,12 @@
 using CSharpFunctionalExtensions;
 using EducationContentService.Core.Features.Lessons;
 using EducationContentService.Domain.Lessons;
-using EducationContentService.Domain.Shared;
 using EducationContentService.Infrastructure.Postgres.Configurations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using Shared.SharedKernel;
+using EducationErrors = EducationContentService.Domain.Shared.EducationErrors;
 
 namespace EducationContentService.Infrastructure.Postgres;
 

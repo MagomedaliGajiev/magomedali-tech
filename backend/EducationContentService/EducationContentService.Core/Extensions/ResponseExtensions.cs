@@ -1,5 +1,5 @@
-using EducationContentService.Domain.Shared;
 using Microsoft.AspNetCore.Http;
+using Shared.SharedKernel;
 
 namespace EducationContentService.Core.Extensions;
 

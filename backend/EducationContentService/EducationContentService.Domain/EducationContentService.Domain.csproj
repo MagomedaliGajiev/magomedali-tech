@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="CSharpFunctionalExtensions" />
+    <PackageReference Include="Magomedali.Shared.SharedKernel" />
     <PackageReference Include="Serilog.AspNetCore" />
   </ItemGroup>
 </Project>
