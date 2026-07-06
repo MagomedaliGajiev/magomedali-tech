@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/SolutionFolder/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="Framework/Framework.csproj" />
+  <Project Path="Shared.SharedKernel/Shared.SharedKernel.csproj" />
+  <Project Path="Core/Core.csproj" />
+</Solution>

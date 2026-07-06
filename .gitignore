@@ -77,3 +77,18 @@ secrets.json
 .env
 .env.local
 *.env
+!*.env.example
+
+# ---- Solution / user-specific ----
+*.slnx.user
+*.sln.iml
+*.DotSettings.user
+
+# ---- Docker (local overrides) ----
+docker-compose.override.yml
+docker-compose.*.local.yml
+
+# ---- Misc ----
+*.bak
+*.tmp
+*~

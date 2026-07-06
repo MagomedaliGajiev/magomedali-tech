@@ -1,5 +1,5 @@
-﻿using EducationContentService.Web.EndpointsSettings;
-using EducationContentService.Web.Middlewares;
+﻿using Framework.Endpoints;
+using Framework.Middlewares;
 using Serilog;
 
 namespace EducationContentService.Web.Configuration;
