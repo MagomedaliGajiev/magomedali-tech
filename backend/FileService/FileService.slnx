@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/SolutionFolder/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+  </Folder>
+  <Project Path="FileService.Core/FileService.Core.csproj" />
+  <Project Path="FileService.Domain/FileService.Domain.csproj" />
+  <Project Path="FileService.Infrastructure.Postgres/FileService.Infrastructure.Postgres.csproj" />
+  <Project Path="FileService.Infrastructure.S3/FileService.Infrastructure.S3.csproj" />
+  <Project Path="FileService.Web/FileService.Web.csproj" />
+</Solution>
