@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\FileService.Domain\FileService.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Magomedali.Shared.Core" />
+    <PackageReference Include="magomedali.shared.framework" />
+  </ItemGroup>
+</Project>

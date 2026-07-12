@@ -1,0 +1,14 @@
+﻿<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.2" />
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.100.3" />
+    <PackageVersion Include="Magomedali.Shared.Core" Version="1.0.0-preview.6" />
+    <PackageVersion Include="Magomedali.Shared.Framework" Version="1.0.0-preview.6" />
+    <PackageVersion Include="Magomedali.Shared.SharedKernel" Version="1.0.0-preview.6" />
+    <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
+  </ItemGroup>
+</Project>

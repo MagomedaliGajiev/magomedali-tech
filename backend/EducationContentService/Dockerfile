@@ -13,8 +13,11 @@ COPY ["EducationContentService.Core/EducationContentService.Core.csproj", "Educa
 
 COPY ["Directory.Build.props", "./"]
 COPY ["Directory.Packages.props", "./"]
+COPY ["nuget.config", "./"]
 
-RUN dotnet restore "EducationContentService.Web/EducationContentService.Web.csproj"
+RUN --mount=type=secret,id=gh_token \
+    GH_PACKAGES_TOKEN="$(cat /run/secrets/gh_token)" \
+    dotnet restore "EducationContentService.Web/EducationContentService.Web.csproj"
 COPY . .
 WORKDIR "/src/EducationContentService.Web"
 RUN dotnet build "./EducationContentService.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
