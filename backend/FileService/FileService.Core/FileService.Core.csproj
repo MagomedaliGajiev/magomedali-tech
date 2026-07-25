@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="..\FileService.Contracts\FileService.Contracts.csproj" />
     <ProjectReference Include="..\FileService.Domain\FileService.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>

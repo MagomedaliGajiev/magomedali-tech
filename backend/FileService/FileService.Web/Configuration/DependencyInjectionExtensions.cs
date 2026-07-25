@@ -1,4 +1,5 @@
 ﻿using FileService.Core;
+using FileService.Infrastructure.Postgres;
 using FileService.Infrastructure.S3;
 using Framework.Endpoints;
 using Framework.Logging;
@@ -17,7 +18,8 @@ public static class DependencyInjectionExtensions
             .AddS3(configuration);
 
         services
-            .AddCore();
+            .AddCore()
+            .AddInfrastructurePostgres(configuration);
 
         return services;
     }
