@@ -5,6 +5,8 @@ namespace FileService.Domain;
 
 public sealed record FileName
 {
+    public string Value => Name;
+
     public string Name { get; private set; } = string.Empty;
 
     public string Extension { get; private set; } = string.Empty;

@@ -10,6 +10,8 @@ public static class DependencyInjectionCoreExtensions
     {
         services.AddScoped<StartMultipartUploadHandler>();
         services.AddScoped<CompleteMultipartUploadHandler>();
+        services.AddScoped<GetMediaAsset.GetMediaAssetUploadHandler>();
+        services.AddScoped<GetMediaAssetsUploadHandler>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionCoreExtensions).Assembly);
 

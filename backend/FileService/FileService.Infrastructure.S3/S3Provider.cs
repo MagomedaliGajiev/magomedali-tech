@@ -2,8 +2,8 @@
 using Amazon.S3.Model;
 using CSharpFunctionalExtensions;
 using FileService.Contracts;
-using FileService.Core.Features;
 using FileService.Core.FilesStorage;
+using FileService.Core.Models;
 using FileService.Domain;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -105,13 +105,54 @@ public class S3Provider : IFileStorageProvider
                 BucketName = storageKey.Location,
                 Key = storageKey.Value,
                 Verb = HttpVerb.GET,
-                Expires = DateTime.UtcNow.AddHours(_s3Options.DownloadUrlExpirationsHours),
+                Expires = DateTime.UtcNow.AddDays(_s3Options.DownloadUrlExpirationDays),
                 Protocol = _s3Options.WithSsl ? Protocol.HTTPS : Protocol.HTTP
             };
 
             string? response = await _s3Client.GetPreSignedURLAsync(request);
 
             return response;
+        }
+        catch (Exception ex)
+        {
+            return S3ErrorMapper.ToError(ex);
+        }
+    }
+
+    public async Task<Result<IReadOnlyList<MediaUrl>, Error>> GenerateDownloadUrlsAsync(
+        IEnumerable<StorageKey> storageKeys,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            IEnumerable<Task<MediaUrl>> tasks = storageKeys.Select(async storageKey =>
+            {
+                await _requestsSemaphore.WaitAsync(cancellationToken);
+
+                try
+                {
+                    var request = new GetPreSignedUrlRequest
+                    {
+                        BucketName = storageKey.Location,
+                        Key = storageKey.Value,
+                        Verb = HttpVerb.GET,
+                        Expires = DateTime.UtcNow.AddDays(_s3Options.DownloadUrlExpirationDays),
+                        Protocol = _s3Options.WithSsl ? Protocol.HTTPS : Protocol.HTTP
+                    };
+
+                    string? response = await _s3Client.GetPreSignedURLAsync(request);
+
+                    return new MediaUrl(storageKey, response);
+                }
+                finally
+                {
+                    _requestsSemaphore.Release();
+                }
+            });
+
+            MediaUrl[] results = await Task.WhenAll(tasks);
+
+            return results;
         }
         catch (Exception ex)
         {

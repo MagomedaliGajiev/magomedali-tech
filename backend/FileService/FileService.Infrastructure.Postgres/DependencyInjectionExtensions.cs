@@ -32,6 +32,8 @@ public static class DependencyInjectionExtensions
                 options.EnableDetailedErrors();
             }
         });
+        services.AddScoped<IReadDbContext>(serviceProvider =>
+            serviceProvider.GetRequiredService<FileServiceDbContext>());
 
         return services;
     }
