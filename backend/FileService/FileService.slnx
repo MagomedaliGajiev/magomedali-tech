@@ -4,6 +4,7 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
   </Folder>
+  <Project Path="FileService.Contracts/FileService.Contracts.csproj" />
   <Project Path="FileService.Core/FileService.Core.csproj" />
   <Project Path="FileService.Domain/FileService.Domain.csproj" />
   <Project Path="FileService.Infrastructure.Postgres/FileService.Infrastructure.Postgres.csproj" />

@@ -1,6 +1,7 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Util;
+using FileService.Domain.Assets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,6 +10,9 @@ namespace FileService.Infrastructure.S3;
 
 public class S3BucketInitializationService : BackgroundService
 {
+    private static readonly string[] BuiltInRequiredBuckets =
+        [VideoAsset.LOCATION, PreviewAsset.LOCATION];
+
     private readonly S3Options _s3Options;
     private readonly IAmazonS3 _s3Client;
     private readonly ILogger<S3BucketInitializationService> _logger;
@@ -29,17 +33,16 @@ public class S3BucketInitializationService : BackgroundService
         {
             _logger.LogInformation("S3 bucket initialization service started");
 
-            if (_s3Options.RequiredBuckets.Count == 0)
-            {
-                _logger.LogWarning("No required buckets configured; skipping S3 bucket initialization");
-                return;
-            }
+            string[] requiredBuckets = _s3Options.RequiredBuckets
+                .Concat(BuiltInRequiredBuckets)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
 
             _logger.LogInformation(
                 "Starting S3 buckets initialization. Required buckets: {Buckets}",
-                string.Join(", ", _s3Options.RequiredBuckets));
+                string.Join(", ", requiredBuckets));
 
-            Task[] tasks = _s3Options.RequiredBuckets
+            Task[] tasks = requiredBuckets
                 .Select(bucketName => InitializeBucketAsync(bucketName, stoppingToken))
                 .ToArray();
 

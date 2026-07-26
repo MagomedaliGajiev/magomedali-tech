@@ -7,5 +7,9 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="magomedali.shared.framework" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>
