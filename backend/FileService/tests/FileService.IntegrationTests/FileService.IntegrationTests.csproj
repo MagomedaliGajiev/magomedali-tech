@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <RootNamespace>FileService.IntegrationTests</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="coverlet.collector"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="Testcontainers.Minio" />
+        <PackageReference Include="Testcontainers.PostgreSql" />
+        <PackageReference Include="xunit"/>
+        <PackageReference Include="xunit.runner.visualstudio"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\FileService.Core\FileService.Core.csproj" />
+      <ProjectReference Include="..\..\FileService.Infrastructure.Postgres\FileService.Infrastructure.Postgres.csproj" />
+      <ProjectReference Include="..\..\FileService.Infrastructure.S3\FileService.Infrastructure.S3.csproj" />
+      <ProjectReference Include="..\..\FileService.Web\FileService.Web.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="appsettings.Tests.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="Resources\test-file.mp4">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>

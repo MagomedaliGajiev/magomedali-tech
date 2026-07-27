@@ -18,7 +18,7 @@ public static class DependencyInjectionExtensions
 
         services.AddDbContextPool<FileServiceDbContext>((serviceProvider, options) =>
         {
-            string connectionString = configuration.GetConnectionString("Database")
+            string connectionString = configuration.GetConnectionString(Constants.DATABASE)
                 ?? throw new InvalidOperationException("Connection string 'Database' is missing.");
             IHostEnvironment hostEnvironment = serviceProvider.GetRequiredService<IHostEnvironment>();
             ILoggerFactory loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();

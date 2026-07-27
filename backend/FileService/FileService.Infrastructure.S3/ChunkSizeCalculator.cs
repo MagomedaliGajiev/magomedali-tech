@@ -25,12 +25,15 @@ public class ChunkSizeCalculator : IChunkSizeCalculator
         if (fileSize <= _options.RecommendedChunkSizeBytes)
             return (fileSize, 1);
 
-        int calculatedChunks = (int)Math.Ceiling((double)fileSize / _options.RecommendedChunkSizeBytes);
+        long minimumChunkSize = DivideRoundingUp(fileSize, _options.MaxChunks);
+        long chunkSize = Math.Max(_options.RecommendedChunkSizeBytes, minimumChunkSize);
+        long totalChunks = DivideRoundingUp(fileSize, chunkSize);
 
-        int actualChunks = Math.Min(calculatedChunks, _options.MaxChunks);
+        return (chunkSize, checked((int)totalChunks));
+    }
 
-        long chunkSize = (fileSize + actualChunks - 1) / actualChunks;
-
-        return (chunkSize, actualChunks);
+    private static long DivideRoundingUp(long dividend, long divisor)
+    {
+        return (dividend / divisor) + (dividend % divisor == 0 ? 0 : 1);
     }
 }
