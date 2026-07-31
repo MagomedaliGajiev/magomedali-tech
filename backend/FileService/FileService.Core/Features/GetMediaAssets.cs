@@ -1,14 +1,13 @@
 ﻿using CSharpFunctionalExtensions;
 using FileService.Contracts;
 using FileService.Core.FilesStorage;
-using FileService.Core.Models;
+using FileService.Domain;
 using FileService.Domain.Assets;
 using Framework.Endpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Shared.SharedKernel;
 
 namespace FileService.Core.Features;
@@ -27,15 +26,14 @@ public sealed class GetMediaAssets : IEndpoint
 public sealed class GetMediaAssetsUploadHandler
 {
     private readonly IReadDbContext _readDbContext;
-    private readonly IFileStorageProvider _fileStorageProvider;
+    private readonly PresignedUrlCache _presignedUrlCache;
 
     public GetMediaAssetsUploadHandler(
-        ILogger<GetMediaAssetsUploadHandler> logger,
         IReadDbContext readDbContext,
-        IFileStorageProvider fileStorageProvider)
+        PresignedUrlCache presignedUrlCache)
     {
         _readDbContext = readDbContext;
-        _fileStorageProvider = fileStorageProvider;
+        _presignedUrlCache = presignedUrlCache;
     }
 
     public async Task<Result<GetMediaAssetsResponse, Error>> Handle(
@@ -55,20 +53,18 @@ public sealed class GetMediaAssetsUploadHandler
 
         var keys = readyMediaAssets.Select(m => m.Key).ToList();
 
-        (_, bool isFailure, IReadOnlyList<MediaUrl> urls, Error error) = await _fileStorageProvider
-            .GenerateDownloadUrlsAsync(keys, cancellationToken);
+        Result<IReadOnlyDictionary<StorageKey, string>, Error> urlsResult = await _presignedUrlCache
+            .GetAsync(keys, cancellationToken);
 
-        if (isFailure)
-            return error;
-
-        var urlsDict = urls.ToDictionary(url => url.StorageKey, url => url.PresignedUrl);
+        if (urlsResult.IsFailure)
+            return urlsResult.Error;
 
         var results = new List<GetMediaAssetsDto>();
         foreach (MediaAsset mediaAsset in mediaAssets)
         {
             string? downloadUrl = null;
 
-            if (urlsDict.TryGetValue(mediaAsset.Key, out string? url))
+            if (urlsResult.Value.TryGetValue(mediaAsset.Key, out string? url))
             {
                 downloadUrl = url;
             }
@@ -84,4 +80,5 @@ public sealed class GetMediaAssetsUploadHandler
 
         return new GetMediaAssetsResponse(results);
     }
+
 }

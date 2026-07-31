@@ -55,8 +55,18 @@ services:
       - minio-data:/data
     restart: always
 
+  redis:
+    container_name: redis-magomedali-tech
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
 volumes:
   minio-data:
+  redis_data:
 
 secrets:
   gh_token:
