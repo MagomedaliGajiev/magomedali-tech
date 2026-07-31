@@ -37,7 +37,9 @@ public class S3Provider : IFileStorageProvider
         {
             var request = new InitiateMultipartUploadRequest()
             {
-                BucketName = storageKey.Location, Key = storageKey.Value, ContentType = mediaData.ContentType.Value,
+                BucketName = storageKey.Location,
+                Key = storageKey.Value,
+                ContentType = mediaData.ContentType.Value,
             };
             InitiateMultipartUploadResponse result = await _s3Client.InitiateMultipartUploadAsync(request, cancellationToken);
 
@@ -131,18 +133,21 @@ public class S3Provider : IFileStorageProvider
 
                 try
                 {
+                    DateTimeOffset expiresAtUtc = DateTimeOffset.UtcNow
+                        .AddDays(_s3Options.DownloadUrlExpirationDays);
+
                     var request = new GetPreSignedUrlRequest
                     {
                         BucketName = storageKey.Location,
                         Key = storageKey.Value,
                         Verb = HttpVerb.GET,
-                        Expires = DateTime.UtcNow.AddDays(_s3Options.DownloadUrlExpirationDays),
+                        Expires = expiresAtUtc.UtcDateTime,
                         Protocol = _s3Options.WithSsl ? Protocol.HTTPS : Protocol.HTTP
                     };
 
                     string? response = await _s3Client.GetPreSignedURLAsync(request);
 
-                    return new MediaUrl(storageKey, response);
+                    return new MediaUrl(storageKey, response, expiresAtUtc);
                 }
                 finally
                 {
@@ -174,10 +179,10 @@ public class S3Provider : IFileStorageProvider
                 Key = storageKey.Value,
                 UploadId = uploadId,
                 PartETags = partETags.OrderBy(p => p.PartNumber).Select(p => new PartETag
-                    {
-                        PartNumber = p.PartNumber,
-                        ETag = p.ETag
-                    }).ToList()
+                {
+                    PartNumber = p.PartNumber,
+                    ETag = p.ETag
+                }).ToList()
             };
 
             CompleteMultipartUploadResponse response = await _s3Client.CompleteMultipartUploadAsync(request, cancellationToken);

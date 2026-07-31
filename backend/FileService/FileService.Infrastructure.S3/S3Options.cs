@@ -1,6 +1,6 @@
 ﻿namespace FileService.Infrastructure.S3;
 
-public record S3Options
+public sealed record S3Options
 {
     public string Endpoint { get; init; } = string.Empty;
 
@@ -18,7 +18,7 @@ public record S3Options
 
     public int MaxConcurrentRequests { get; init; } = 20;
 
-    public long RecommendedChunkSizeBytes { get; init; } = 100 * 1024 * 1024; // 100 MB
+    public long RecommendedChunkSizeBytes { get; init; } = 100 * 1024 * 1024;
 
     public int MaxChunks { get; init; } = 100;
 }

@@ -2,4 +2,7 @@
 
 namespace FileService.Core.Models;
 
-public record MediaUrl(StorageKey StorageKey, string PresignedUrl);
+public sealed record MediaUrl(
+    StorageKey StorageKey,
+    string PresignedUrl,
+    DateTimeOffset ExpiresAtUtc);
