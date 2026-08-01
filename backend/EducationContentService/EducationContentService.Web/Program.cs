@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using EducationContentService.Web.Configuration;
 using Serilog;
 
@@ -28,4 +28,9 @@ catch (Exception ex) when (ex is not HostAbortedException)
 finally
 {
     Log.CloseAndFlush();
+}
+
+namespace EducationContentService.Web
+{
+    public partial class Program;
 }
