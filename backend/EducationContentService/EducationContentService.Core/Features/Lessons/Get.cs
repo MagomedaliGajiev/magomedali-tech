@@ -17,7 +17,7 @@ using Shared.SharedKernel;
 
 namespace EducationContentService.Core.Features.Lessons;
 
-public class GetLessonRequestValidator : AbstractValidator<GetLessonRequest>
+public class GetLessonRequestValidator : AbstractValidator<GetLessonsRequest>
 {
     public GetLessonRequestValidator()
     {
@@ -31,7 +31,7 @@ public class GetLessonRequestValidator : AbstractValidator<GetLessonRequest>
 
         RuleFor(r => r.PageSize)
             .GreaterThan(0)
-            .LessThanOrEqualTo(GetLessonRequest.MAX_PAGE_SIZE)
+            .LessThanOrEqualTo(GetLessonsRequest.MAX_PAGE_SIZE)
             .WithError(GeneralErrors.ValueIsInvalid("pageSize"));
     }
 }
@@ -41,7 +41,7 @@ public sealed class GetEndpoint : IEndpoint
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
         app.MapGet("/lessons", async Task<EndpointResult<PaginationLessonResponse>> (
-            [AsParameters] GetLessonRequest request,
+            [AsParameters] GetLessonsRequest request,
             [FromServices] GetHandler handler,
             CancellationToken cancellationToken) => await handler.Handle(request, cancellationToken));
     }
@@ -51,12 +51,12 @@ public sealed class GetHandler
 {
     private readonly IEducationReadDbContext _readDbContext;
     private readonly IFileCommunicationService _fileCommunicationService;
-    private readonly IValidator<GetLessonRequest> _validator;
+    private readonly IValidator<GetLessonsRequest> _validator;
 
     public GetHandler(
         IEducationReadDbContext readDbContext,
         IFileCommunicationService fileCommunicationService,
-        IValidator<GetLessonRequest> validator)
+        IValidator<GetLessonsRequest> validator)
     {
         _readDbContext = readDbContext;
         _fileCommunicationService = fileCommunicationService;
@@ -64,7 +64,7 @@ public sealed class GetHandler
     }
 
     public async Task<Result<PaginationLessonResponse, Error>> Handle(
-        GetLessonRequest request,
+        GetLessonsRequest request,
         CancellationToken cancellationToken)
     {
         ValidationResult validationResult = await _validator.ValidateAsync(request, cancellationToken);
