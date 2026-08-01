@@ -1,4 +1,5 @@
 ﻿using FileService.Contracts;
+using FileService.Contracts.Dtos;
 
 namespace FileService.Core.Features;
 

@@ -1,9 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
+      <PackageId>Magomedali.FileService.Contracts</PackageId>
+      <Version>0.0.1-preview.1</Version>
+      <IsPackable>true</IsPackable>
+      <Authors>MagomedaliTech</Authors>
+      <Company>MagomedaliTech</Company>
+      <RepositoryUrl>https://github.com/MagomedaliGajiev/magomedali-tech</RepositoryUrl>
+      <RepositoryType>git</RepositoryType>
+      <PackageDescription>
+        Contracts and HTTP communication client for Magomedali FileService
+      </PackageDescription>
     </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="CSharpFunctionalExtensions" />
+      <PackageReference Include="Magomedali.Shared.SharedKernel" />
+      <PackageReference Include="Microsoft.Extensions.Http" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <InternalsVisibleTo Include="FileService.IntegrationTests" />
+    </ItemGroup>
 
 </Project>

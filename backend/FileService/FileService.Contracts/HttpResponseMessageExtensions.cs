@@ -2,7 +2,7 @@
 using CSharpFunctionalExtensions;
 using Shared.SharedKernel;
 
-namespace FileService.Core.HttpComunication;
+namespace FileService.Contracts;
 
 public static class HttpResponseMessageExtensions
 {
@@ -13,30 +13,30 @@ public static class HttpResponseMessageExtensions
     {
         try
         {
-            Envelope<TResponse>? startMultipartResponse = await response.Content
+            Envelope<TResponse>? jsonResponse = await response.Content
                 .ReadFromJsonAsync<Envelope<TResponse>>(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                return startMultipartResponse?.Error ?? GeneralErrors
+                return jsonResponse?.Error ?? GeneralErrors
                     .Failure("Error while reading response");
             }
 
-            if (startMultipartResponse is null)
+            if (jsonResponse is null)
             {
                 return GeneralErrors.Failure("Error while reading response");
             }
 
-            if (startMultipartResponse.Error is not null)
+            if (jsonResponse.Error is not null)
             {
-                return startMultipartResponse.Error;
+                return jsonResponse.Error;
             }
 
-            if (startMultipartResponse.Result is null)
+            if (jsonResponse.Result is null)
             {
                 return GeneralErrors.Failure("Error while reading response");
             }
 
-            return startMultipartResponse.Result;
+            return jsonResponse.Result;
         }
         catch
         {

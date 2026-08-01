@@ -18,6 +18,7 @@
     <ItemGroup>
       <PackageReference Include="FluentValidation" />
       <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+      <PackageReference Include="Magomedali.FileService.Contracts" />
       <PackageReference Include="Magomedali.Shared.Core" />
       <PackageReference Include="Magomedali.Shared.Framework" />
       <PackageReference Include="Microsoft.EntityFrameworkCore" />
