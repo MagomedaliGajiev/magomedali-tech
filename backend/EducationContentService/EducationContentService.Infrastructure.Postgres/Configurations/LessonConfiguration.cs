@@ -1,4 +1,4 @@
-using EducationContentService.Domain.Lessons;
+﻿using EducationContentService.Domain.Lessons;
 using EducationContentService.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -43,6 +43,9 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
                 description => description.Value,
                 value => Description.Create(value).Value)
             .IsRequired();
+
+        builder.Property(l => l.VideoId)
+            .HasColumnName("video_id");
 
         builder.Property(l => l.CreatedAt)
             .HasColumnName("created_at")

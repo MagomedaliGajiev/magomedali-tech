@@ -1,5 +1,6 @@
 ﻿using CSharpFunctionalExtensions;
 using FileService.Contracts;
+using FileService.Contracts.Dtos;
 using FileService.Core.FilesStorage;
 using FileService.Domain.Assets;
 using Framework.Endpoints;

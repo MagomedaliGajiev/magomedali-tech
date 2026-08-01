@@ -3,14 +3,14 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using CSharpFunctionalExtensions;
 using FileService.Contracts;
+using FileService.Contracts.Dtos;
 using FileService.Core.Features;
-using FileService.Core.HttpComunication;
 using FileService.Domain.Assets;
 using FileService.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shared.SharedKernel;
-using CompleteMultipartUploadRequest = FileService.Contracts.CompleteMultipartUploadRequest;
+using CompleteMultipartUploadRequest = FileService.Contracts.Dtos.CompleteMultipartUploadRequest;
 
 namespace FileService.IntegrationTests.Features;
 

@@ -2,8 +2,8 @@ services:
   education-content-service:
     container_name: education-content-service
     build:
-      context: ./backend/EducationContentService
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: EducationContentService/Dockerfile
       secrets:
         - gh_token
     ports:
@@ -11,6 +11,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://+:9001
+      - FileServiceOptions__Url=http://host.docker.internal:8002
     env_file:
       - path: education.service.env
         required: false

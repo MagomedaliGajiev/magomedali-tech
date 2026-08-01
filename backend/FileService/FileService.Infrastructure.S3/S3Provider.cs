@@ -2,6 +2,7 @@
 using Amazon.S3.Model;
 using CSharpFunctionalExtensions;
 using FileService.Contracts;
+using FileService.Contracts.Dtos;
 using FileService.Core.FilesStorage;
 using FileService.Core.Models;
 using FileService.Domain;

@@ -12,4 +12,5 @@
   <Project Path="EducationContentService.Domain/EducationContentService.Domain.csproj" />
   <Project Path="EducationContentService.Infrastructure.Postgres/EducationContentService.Infrastructure.Postgres.csproj" />
   <Project Path="EducationContentService.Web/EducationContentService.Web.csproj" />
+  <Project Path="tests/EducationContentService.UnitTests/EducationContentService.UnitTests.csproj" />
 </Solution>
