@@ -4,24 +4,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field } from "@base-ui/react";
 import { Input } from "@/components/ui/input";
+import useCounter from "@/hooks/use-counter";
 
 export default function Counter() {
-  const [count, setCount] = useState(0);
-
-  const handleClick = () => {
-    setCount((currentCount) => currentCount + 1);
-  };
-
+  const { counter, click, isWin } = useCounter();
   return (
     <div className="flex flex-col items-center gap-5 text-center">
       <p className="text-sm font-medium text-muted-foreground">
         Текущее значение
       </p>
-      <CoolCount count={count} />
-      <Button
-        className="w-full border border-[#3fb950]/30"
-        onClick={handleClick}
-      >
+      <CoolCount count={counter} />
+      <Button className="w-full border border-[#3fb950]/30" onClick={click}>
         Увеличить
       </Button>
 
@@ -31,7 +24,7 @@ export default function Counter() {
         className="w-full border border-[#3fb950]/30"
       />
 
-      {count >= 10 && <span>Поздравляем! Вы достигли 10!</span>}
+      {isWin && <span>Поздравляем! Вы достигли 10!</span>}
     </div>
   );
 }
