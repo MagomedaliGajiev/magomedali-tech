@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/header/header";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidbar/app.sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "План на сегодня",
-  description: "Персональный список задач на день",
+  title: "Maraphon",
+  description: "Счётчик и персональный список задач",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,7 +26,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ru"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>
+        <SidebarProvider>
+          <AppSidebar />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Header />
+            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+              {children}
+            </main>
+          </div>
+        </SidebarProvider>
+      </body>
     </html>
   );
 }

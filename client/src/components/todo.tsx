@@ -100,7 +100,7 @@ export default function Todo() {
     <section className="relative" aria-labelledby="todo-heading">
       <header className="flex items-start justify-between gap-5">
         <div>
-          <div className="mb-3 flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-emerald-400">
+          <div className="mb-3 flex items-center gap-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-primary">
             <Sparkles className="size-3.5" aria-hidden="true" />
             Фокус на сегодня
           </div>
@@ -115,12 +115,12 @@ export default function Todo() {
           </p>
         </div>
 
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-[0_10px_28px_rgba(16,185,129,0.22)] sm:size-14">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-white shadow-[0_10px_28px_rgba(255,0,51,0.2)] sm:size-14">
           <ListChecks className="size-6" aria-hidden="true" />
         </div>
       </header>
 
-      <div className="mt-7 rounded-2xl border border-white/8 bg-background/45 p-4 sm:p-5">
+      <div className="mt-7 rounded-xl bg-[#181818] p-4 ring-1 ring-white/5 sm:p-5">
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-foreground">
@@ -130,7 +130,7 @@ export default function Todo() {
               {completedCount} из {todos.length} задач завершено
             </p>
           </div>
-          <span className="text-2xl font-semibold tabular-nums tracking-tight text-emerald-400">
+          <span className="text-2xl font-semibold tabular-nums tracking-tight text-primary">
             {progress}%
           </span>
         </div>
@@ -143,7 +143,7 @@ export default function Todo() {
           aria-valuenow={progress}
         >
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-[width] duration-500"
+            className="h-full rounded-full bg-primary transition-[width] duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -153,14 +153,14 @@ export default function Todo() {
         <Input
           value={newTodo}
           onChange={(event) => setNewTodo(event.target.value)}
-          className="h-11 border-white/10 bg-background/55 px-4 shadow-inner placeholder:text-muted-foreground/70 focus-visible:border-emerald-500/60 focus-visible:ring-emerald-500/15"
+          className="h-11 rounded-full border-[#303030] bg-[#121212] px-4 placeholder:text-muted-foreground/70 focus-visible:border-primary focus-visible:ring-primary/25"
           placeholder="Добавить новую задачу…"
           aria-label="Название новой задачи"
         />
         <Button
           type="submit"
           aria-label="Добавить задачу"
-          className="h-11 gap-2 bg-emerald-600 px-4 text-white shadow-sm hover:bg-emerald-500"
+          className="h-11 gap-2 rounded-full bg-primary px-5 text-white shadow-sm hover:bg-[#d9002b]"
           disabled={!newTodo.trim()}
         >
           <Plus className="size-4" aria-hidden="true" />
@@ -169,17 +169,17 @@ export default function Todo() {
       </form>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex rounded-xl border border-white/8 bg-background/40 p-1">
+        <div className="flex rounded-full bg-background/60 p-1">
           {filters.map((item) => (
             <button
               key={item.value}
               type="button"
               onClick={() => setFilter(item.value)}
               aria-pressed={filter === item.value}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 ${
+              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 filter === item.value
-                  ? "bg-muted text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-white text-black"
+                  : "text-muted-foreground hover:bg-white/10 hover:text-foreground"
               }`}
             >
               {item.label}
@@ -197,18 +197,18 @@ export default function Todo() {
             <button
               type="button"
               onClick={() => toggleTodo(todo.id)}
-              className={`group flex w-full items-center gap-3.5 rounded-2xl border p-3.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60 sm:p-4 ${
+              className={`group flex w-full items-center gap-3.5 rounded-xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-4 ${
                 todo.completed
-                  ? "border-emerald-500/20 bg-emerald-500/[0.055]"
-                  : "border-white/8 bg-background/30 hover:-translate-y-0.5 hover:border-white/15 hover:bg-muted/35 hover:shadow-lg"
+                  ? "bg-primary/[0.08] ring-1 ring-primary/20"
+                  : "bg-[#181818] ring-1 ring-white/5 hover:bg-[#272727]"
               }`}
               aria-label={`${todo.completed ? "Вернуть в работу" : "Завершить"}: ${todo.text}`}
             >
               <span
-                className={`flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors ${
+                className={`flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors ${
                   todo.completed
-                    ? "border-emerald-500 bg-emerald-500 text-white"
-                    : "border-muted-foreground/35 bg-muted/45 text-transparent group-hover:border-emerald-500/60"
+                    ? "border-primary bg-primary text-white"
+                    : "border-muted-foreground/35 bg-muted/45 text-transparent group-hover:border-primary"
                 }`}
               >
                 {todo.completed ? (
@@ -222,7 +222,7 @@ export default function Todo() {
                 <span
                   className={`block truncate text-sm font-medium transition-colors ${
                     todo.completed
-                      ? "text-muted-foreground line-through decoration-emerald-500/70"
+                      ? "text-muted-foreground line-through decoration-primary/70"
                       : "text-foreground"
                   }`}
                 >
