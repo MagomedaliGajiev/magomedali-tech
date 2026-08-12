@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import useCounter from "@/hooks/use-counter";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import useCounter from "@/shared/hooks/use-counter";
 
 export default function Counter() {
   const { counter, click, isWin } = useCounter();
@@ -13,9 +13,7 @@ export default function Counter() {
           Текущее значение
         </p>
         <CoolCount count={counter} />
-        <p className="mt-2 text-xs text-muted-foreground">
-          Цель: 10 нажатий
-        </p>
+        <p className="mt-2 text-xs text-muted-foreground">Цель: 10 нажатий</p>
       </div>
 
       <Button

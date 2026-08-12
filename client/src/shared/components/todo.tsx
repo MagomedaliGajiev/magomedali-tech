@@ -9,8 +9,8 @@ import {
   Plus,
   Sparkles,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
 
 type Todo = {
   id: number;
@@ -212,7 +212,11 @@ export default function Todo() {
                 }`}
               >
                 {todo.completed ? (
-                  <Check className="size-4" strokeWidth={3} aria-hidden="true" />
+                  <Check
+                    className="size-4"
+                    strokeWidth={3}
+                    aria-hidden="true"
+                  />
                 ) : (
                   <Circle className="size-2 fill-current" aria-hidden="true" />
                 )}

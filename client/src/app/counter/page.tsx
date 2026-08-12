@@ -1,4 +1,4 @@
-import Counter from "../../components/counter";
+import Counter from "@/shared/components/counter";
 import { Sigma } from "lucide-react";
 
 export default function CounterPage() {

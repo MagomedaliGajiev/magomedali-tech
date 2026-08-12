@@ -1,16 +1,13 @@
 import Link from "next/link";
 import { Play } from "lucide-react";
 import { routes } from "@/shared/routes";
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/shared/components/ui/sidebar";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0f0f0f]/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0f0f0f]/95 text-white backdrop-blur-xl">
       <div className="flex h-16 w-full items-center px-4 sm:px-6">
-        <SidebarTrigger
-          className="mr-3 md:hidden"
-          aria-label="Открыть меню"
-        />
+        <SidebarTrigger className="mr-3 md:hidden" aria-label="Открыть меню" />
         <Link
           href={routes.home}
           className="group flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -23,10 +20,10 @@ export default function Header() {
             />
           </span>
           <span className="hidden items-start sm:flex">
-            <span className="text-xl font-bold leading-none tracking-[-0.055em]">
+            <span className="text-xl font-bold leading-none tracking-[-0.055em] text-white">
               Fullstack
             </span>
-            <span className="ml-1 text-[0.55rem] leading-none text-muted-foreground">
+            <span className="ml-1 text-[0.55rem] leading-none text-white">
               FS
             </span>
           </span>
