@@ -27,85 +27,8 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { lessonsApi } from "@/app/entities/lessons/api";
-import { error } from "console";
-
-const lessons: Lesson[] = [
-  {
-    id: "lesson-01",
-    title: "Введение в современный Frontend",
-    description:
-      "Разберём устройство веб-приложений и подготовим окружение для дальнейшей работы.",
-    video: {
-      id: "media-01",
-      url: "#",
-      status: MediaStatus.READY,
-    },
-    createdAt: new Date("2026-08-02"),
-    updatedAt: new Date("2026-08-10"),
-  },
-  {
-    id: "lesson-02",
-    title: "Компоненты и композиция",
-    description:
-      "Учимся разбивать интерфейс на независимые компоненты и переиспользовать их.",
-    video: {
-      id: "media-02",
-      url: "#",
-      status: MediaStatus.READY,
-    },
-    createdAt: new Date("2026-08-04"),
-    updatedAt: new Date("2026-08-11"),
-  },
-  {
-    id: "lesson-03",
-    title: "Работа с данными в интерфейсе",
-    description:
-      "Подготовим типы данных и научимся отображать коллекции в удобном формате.",
-    video: {
-      id: "media-03",
-      url: "#",
-      status: MediaStatus.UPLOADED,
-    },
-    createdAt: new Date("2026-08-06"),
-    updatedAt: new Date("2026-08-12"),
-  },
-  {
-    id: "lesson-04",
-    title: "Адаптивная вёрстка",
-    description:
-      "Соберём макет, который одинаково хорошо выглядит на телефоне и компьютере.",
-    video: {
-      id: "media-04",
-      url: "#",
-      status: MediaStatus.UPLOADING,
-    },
-    createdAt: new Date("2026-08-08"),
-    updatedAt: new Date("2026-08-12"),
-  },
-  {
-    id: "lesson-05",
-    title: "Формы и пользовательский ввод",
-    description:
-      "Проектируем понятные формы, состояния полей и обратную связь для пользователя.",
-    video: {
-      id: "media-05",
-      url: "#",
-      status: MediaStatus.FAILED,
-    },
-    createdAt: new Date("2026-08-09"),
-    updatedAt: new Date("2026-08-12"),
-  },
-  {
-    id: "lesson-06",
-    title: "Финальная сборка проекта",
-    description:
-      "Объединим изученные приёмы, проверим результат и подготовим приложение к запуску.",
-    createdAt: new Date("2026-08-12"),
-    updatedAt: new Date("2026-08-12"),
-  },
-];
 
 const statusMeta: Record<
   MediaStatusType,
@@ -156,19 +79,40 @@ const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
 const PAGE_SIZE = 10;
 
 export default function LessonsPage() {
-  const [page, setPage] = useState(1);
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  lessonsApi
-    .getLessons({ page, pageSize: PAGE_SIZE })
-    .then((data) => setLessons(data))
-    .catch((error) => console.error(error));
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    lessonsApi
+      .getLessons({ page: 1, pageSize: PAGE_SIZE }, abortController.signal)
+      .then((data) => {
+        setLessons(data);
+        setLoadError(null);
+      })
+      .catch((requestError: unknown) => {
+        if (!abortController.signal.aborted) {
+          setLoadError(
+            requestError instanceof Error
+              ? requestError.message
+              : "Не удалось загрузить уроки",
+          );
+        }
+      })
+      .finally(() => {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => abortController.abort();
+  }, []);
 
   const readyLessons = lessons.filter(
     (lesson) => lesson.video?.status === MediaStatus.READY,
   ).length;
-
-  console.log(lessons);
 
   return (
     <section className="space-y-7">
@@ -249,9 +193,18 @@ export default function LessonsPage() {
             Все уроки
           </h2>
           <span className="text-sm text-muted-foreground">
-            {lessons.length} материалов
+            {isLoading ? "Загрузка…" : `${lessons.length} материалов`}
           </span>
         </div>
+
+        {loadError ? (
+          <div
+            className="mb-4 rounded-xl bg-red-500/10 p-4 text-sm text-red-300 ring-1 ring-red-400/20"
+            role="alert"
+          >
+            Не удалось загрузить уроки: {loadError}
+          </div>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {lessons.map((lesson, index) => {

@@ -9,7 +9,7 @@ export type Lesson = {
 
 export type MediaDto = {
   id: string;
-  url: string;
+  url: string | null;
   status: MediaStatus;
 };
 
