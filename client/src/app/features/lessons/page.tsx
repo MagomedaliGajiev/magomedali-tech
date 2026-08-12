@@ -168,6 +168,8 @@ export default function LessonsPage() {
     (lesson) => lesson.video?.status === MediaStatus.READY,
   ).length;
 
+  console.log(lessons);
+
   return (
     <section className="space-y-7">
       <div className="flex flex-col gap-5 border-b border-white/10 pb-7 sm:flex-row sm:items-end sm:justify-between">
