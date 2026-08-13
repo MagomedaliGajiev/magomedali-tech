@@ -70,3 +70,32 @@ VALUES
         NULL
     )
 ON CONFLICT DO NOTHING;
+
+-- Дополнительные уроки для проверки пагинации: вместе с шестью уроками выше
+-- сидер содержит ровно 40 записей. Идентификаторы детерминированы, поэтому
+-- скрипт можно безопасно запускать повторно.
+INSERT INTO lessons (
+    id,
+    title,
+    description,
+    created_at,
+    updated_at,
+    is_deleted,
+    deleted_at,
+    video_id
+)
+SELECT
+    (
+        '10000000-0000-4000-8000-'
+        || lpad(lesson_number::text, 12, '0')
+    )::uuid,
+    'Дополнительный урок ' || lpad(lesson_number::text, 2, '0'),
+    'Тестовый материал для проверки списка уроков, переходов между страницами и корректного отображения пагинации.',
+    timestamptz '2026-07-01 09:00:00+00'
+        + (lesson_number - 1) * interval '1 day',
+    timestamptz '2026-08-12 12:00:00+00',
+    false,
+    NULL,
+    NULL
+FROM generate_series(7, 40) AS generated_lessons(lesson_number)
+ON CONFLICT DO NOTHING;

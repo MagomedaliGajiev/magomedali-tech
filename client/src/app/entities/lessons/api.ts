@@ -1,4 +1,5 @@
 import { apiClient } from "@/shared/api/axios-nstance";
+import axios from "axios";
 import type { Lesson, MediaDto } from "./types";
 
 export type CreateLessonRequest = {
@@ -73,6 +74,18 @@ const getEnvelopeResult = <T>(envelope: Envelope<T>): T => {
   return envelope.result;
 };
 
+const getApiErrorMessage = (error: unknown): string => {
+  if (!axios.isAxiosError<Envelope>(error)) {
+    return error instanceof Error ? error.message : "Неизвестная ошибка";
+  }
+
+  const message = error.response?.data.error?.messages
+    .map((errorMessage) => errorMessage.message)
+    .join("; ");
+
+  return message || error.message;
+};
+
 const parseDate = (value: string): Date => {
   const date = new Date(value);
 
@@ -114,11 +127,15 @@ export const lessonsApi = {
   },
 
   createLesson: async (request: CreateLessonRequest): Promise<string> => {
-    const response = await apiClient.post<Envelope<string>>(
-      "/lessons",
-      request,
-    );
+    try {
+      const response = await apiClient.post<Envelope<string>>(
+        "/lessons",
+        request,
+      );
 
-    return getEnvelopeResult(response.data);
+      return getEnvelopeResult(response.data);
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error));
+    }
   },
 };
