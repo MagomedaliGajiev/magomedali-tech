@@ -15,7 +15,6 @@ import {
 
 import {
   MediaStatus,
-  type Lesson,
   type MediaStatus as MediaStatusType,
 } from "@/app/entities/lessons/types";
 import { Button } from "@/shared/components/ui/button";
@@ -27,8 +26,18 @@ import {
   CardTitle,
 } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
-import { useEffect, useState } from "react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/shared/components/ui/pagination";
 import { lessonsApi } from "@/app/entities/lessons/api";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 const statusMeta: Record<
   MediaStatusType,
@@ -78,41 +87,83 @@ const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
 
 const PAGE_SIZE = 10;
 
+type PaginationEntry = number | "start-ellipsis" | "end-ellipsis";
+
+const getPaginationEntries = (
+  currentPage: number,
+  totalPages: number,
+): PaginationEntry[] => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, "end-ellipsis", totalPages];
+  }
+
+  if (currentPage >= totalPages - 3) {
+    return [
+      1,
+      "start-ellipsis",
+      totalPages - 4,
+      totalPages - 3,
+      totalPages - 2,
+      totalPages - 1,
+      totalPages,
+    ];
+  }
+
+  return [
+    1,
+    "start-ellipsis",
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    "end-ellipsis",
+    totalPages,
+  ];
+};
+
 export default function LessonsPage() {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const {
+    data,
+    error,
+    isFetching,
+  } = useQuery({
+    queryKey: ["lessons", { page: currentPage, pageSize: PAGE_SIZE }],
+    queryFn: ({ signal }) =>
+      lessonsApi.getLessons(
+        { page: currentPage, pageSize: PAGE_SIZE },
+        signal,
+      ),
+    placeholderData: keepPreviousData,
+  });
 
-  useEffect(() => {
-    const abortController = new AbortController();
-
-    lessonsApi
-      .getLessons({ page: 1, pageSize: PAGE_SIZE }, abortController.signal)
-      .then((data) => {
-        setLessons(data);
-        setLoadError(null);
-      })
-      .catch((requestError: unknown) => {
-        if (!abortController.signal.aborted) {
-          setLoadError(
-            requestError instanceof Error
-              ? requestError.message
-              : "Не удалось загрузить уроки",
-          );
-        }
-      })
-      .finally(() => {
-        if (!abortController.signal.aborted) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => abortController.abort();
-  }, []);
+  const lessons = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const loadError = error
+    ? error instanceof Error
+      ? error.message
+      : "Не удалось загрузить уроки"
+    : null;
 
   const readyLessons = lessons.filter(
     (lesson) => lesson.video?.status === MediaStatus.READY,
   ).length;
+  const totalPages = data?.totalPages ?? 0;
+  const paginationEntries = getPaginationEntries(currentPage, totalPages);
+  const isPreviousDisabled = currentPage === 1 || isFetching;
+  const isNextDisabled =
+    totalPages === 0 || currentPage >= totalPages || isFetching;
+
+  const goToPage = (page: number) => {
+    if (isFetching || page === currentPage || page < 1 || page > totalPages) {
+      return;
+    }
+
+    setCurrentPage(page);
+  };
 
   return (
     <section className="space-y-7">
@@ -142,11 +193,11 @@ export default function LessonsPage() {
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
             Всего уроков
           </p>
-          <p className="mt-2 text-2xl font-bold">{lessons.length}</p>
+          <p className="mt-2 text-2xl font-bold">{totalCount}</p>
         </div>
         <div className="rounded-xl bg-card p-4 ring-1 ring-white/10">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Готовы к просмотру
+            Готовы на странице
           </p>
           <p className="mt-2 text-2xl font-bold text-emerald-300">
             {readyLessons}
@@ -154,7 +205,7 @@ export default function LessonsPage() {
         </div>
         <div className="rounded-xl bg-card p-4 ring-1 ring-white/10">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            В подготовке
+            В подготовке на странице
           </p>
           <p className="mt-2 text-2xl font-bold text-amber-300">
             {lessons.length - readyLessons}
@@ -193,7 +244,7 @@ export default function LessonsPage() {
             Все уроки
           </h2>
           <span className="text-sm text-muted-foreground">
-            {isLoading ? "Загрузка…" : `${lessons.length} материалов`}
+            {isFetching ? "Загрузка…" : `${totalCount} материалов`}
           </span>
         </div>
 
@@ -206,7 +257,11 @@ export default function LessonsPage() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+          id="lessons-list"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          aria-busy={isFetching}
+        >
           {lessons.map((lesson, index) => {
             const mediaStatus = lesson.video?.status;
             const status = mediaStatus ? statusMeta[mediaStatus] : null;
@@ -222,7 +277,13 @@ export default function LessonsPage() {
                 >
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.14),transparent_35%)]" />
                   <span className="absolute left-4 top-4 font-mono text-xs font-semibold text-white/50">
-                    УРОК {String(index + 1).padStart(2, "0")}
+                    УРОК{" "}
+                    {String(
+                      ((data?.page ?? currentPage) - 1) *
+                        (data?.pageSize ?? PAGE_SIZE) +
+                        index +
+                        1,
+                    ).padStart(2, "0")}
                   </span>
 
                   {mediaStatus === MediaStatus.READY ? (
@@ -283,6 +344,70 @@ export default function LessonsPage() {
             );
           })}
         </div>
+
+        {totalPages > 1 ? (
+          <Pagination className="mt-6">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#lessons-list"
+                  text="Назад"
+                  aria-label="Перейти на предыдущую страницу"
+                  aria-disabled={isPreviousDisabled}
+                  tabIndex={isPreviousDisabled ? -1 : undefined}
+                  className={
+                    isPreviousDisabled
+                      ? "pointer-events-none opacity-50"
+                      : undefined
+                  }
+                  onClick={(event) => {
+                    event.preventDefault();
+                    goToPage(currentPage - 1);
+                  }}
+                />
+              </PaginationItem>
+
+              {paginationEntries.map((entry) => (
+                <PaginationItem key={entry}>
+                  {typeof entry === "number" ? (
+                    <PaginationLink
+                      href="#lessons-list"
+                      isActive={entry === currentPage}
+                      aria-label={`Перейти на страницу ${entry}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        goToPage(entry);
+                      }}
+                    >
+                      {entry}
+                    </PaginationLink>
+                  ) : (
+                    <PaginationEllipsis />
+                  )}
+                </PaginationItem>
+              ))}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#lessons-list"
+                  text="Вперёд"
+                  aria-label="Перейти на следующую страницу"
+                  aria-disabled={isNextDisabled}
+                  tabIndex={isNextDisabled ? -1 : undefined}
+                  className={
+                    isNextDisabled
+                      ? "pointer-events-none opacity-50"
+                      : undefined
+                  }
+                  onClick={(event) => {
+                    event.preventDefault();
+                    goToPage(currentPage + 1);
+                  }}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        ) : null}
       </div>
     </section>
   );

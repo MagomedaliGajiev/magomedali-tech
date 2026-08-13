@@ -45,9 +45,20 @@ type LessonDto = Omit<Lesson, "createdAt" | "updatedAt" | "video"> & {
   updatedAt: string;
 };
 
-type PaginationLessonResponse = {
-  lessons: LessonDto[];
+type PaginationLessonResponse<T> = {
+  items: T[];
   totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export type PaginatedLessons = {
+  items: Lesson[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 const getEnvelopeResult = <T>(envelope: Envelope<T>): T => {
@@ -83,20 +94,30 @@ export const lessonsApi = {
   getLessons: async (
     request: GetLessonRequest,
     signal?: AbortSignal,
-  ): Promise<Lesson[]> => {
-    const response = await apiClient.get<Envelope<PaginationLessonResponse>>(
-      "/lessons",
-      {
+  ): Promise<PaginatedLessons> => {
+    const response = await apiClient.get<
+      Envelope<PaginationLessonResponse<LessonDto>>
+    >("/lessons", {
         params: request,
         signal,
-      },
-    );
+    });
 
-    return getEnvelopeResult(response.data).lessons.map(mapLesson);
+    const result = getEnvelopeResult(response.data);
+
+    return {
+      items: result.items.map(mapLesson),
+      totalCount: result.totalCount,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: result.totalPages,
+    };
   },
 
   createLesson: async (request: CreateLessonRequest): Promise<string> => {
-    const response = await apiClient.post<Envelope<string>>("/lessons", request);
+    const response = await apiClient.post<Envelope<string>>(
+      "/lessons",
+      request,
+    );
 
     return getEnvelopeResult(response.data);
   },

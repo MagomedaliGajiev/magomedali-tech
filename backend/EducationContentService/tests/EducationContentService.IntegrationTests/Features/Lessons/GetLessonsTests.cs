@@ -77,10 +77,13 @@ public class GetLessonsTests : EducationTestsBase
         // assert
         Assert.True(lessonsResponse.IsSuccess);
         Assert.Equal(5, lessonsResponse.Value.TotalCount);
-        Assert.Equal(2, lessonsResponse.Value.Lessons.Count);
-        Assert.All(lessonsResponse.Value.Lessons, lesson => Assert.NotNull(lesson.Video));
+        Assert.Equal(2, lessonsResponse.Value.Page);
+        Assert.Equal(2, lessonsResponse.Value.PageSize);
+        Assert.Equal(3, lessonsResponse.Value.TotalPages);
+        Assert.Equal(2, lessonsResponse.Value.Items.Count);
+        Assert.All(lessonsResponse.Value.Items, lesson => Assert.NotNull(lesson.Video));
         Assert.Equal(
             expectedVideoIds,
-            lessonsResponse.Value.Lessons.Select(lesson => lesson.Video!.Id));
+            lessonsResponse.Value.Items.Select(lesson => lesson.Video!.Id));
     }
 }

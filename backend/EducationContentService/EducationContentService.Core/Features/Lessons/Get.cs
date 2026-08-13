@@ -138,7 +138,16 @@ public sealed class GetHandler
             })
             .ToList();
 
-        return new PaginationLessonResponse(lessons, lessonsCount);
+        int totalPages = lessonsCount == 0
+            ? 0
+            : ((lessonsCount - 1) / request.PageSize) + 1;
+
+        return new PaginationLessonResponse(
+            lessons,
+            lessonsCount,
+            request.Page,
+            request.PageSize,
+            totalPages);
     }
 
     private static MediaDto? MapVideo(
