@@ -5,7 +5,6 @@ import {
   BookOpen,
   CheckCircle2,
   Clock3,
-  LoaderCircle,
   MoreHorizontal,
   Play,
   Plus,
@@ -18,7 +17,6 @@ import {
   MediaStatus,
   type MediaStatus as MediaStatusType,
 } from "@/app/entities/lessons/types";
-import type { CreateLessonRequest } from "@/app/entities/lessons/api";
 import { Button } from "@/shared/components/ui/button";
 import {
   Card,
@@ -29,37 +27,16 @@ import {
 } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
 import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldLabel,
-} from "@/shared/components/ui/field";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/shared/components/ui/pagination";
-import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/shared/components/ui/sheet";
-import { lessonsApi } from "@/app/entities/lessons/api";
-import {
-  keepPreviousData,
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { type FormEvent, useEffect, useState } from "react";
+import { useState } from "react";
+import { CreateLessonForm } from "@/app/features/lessons/create-lesson-form";
+import { LessonsPagination } from "@/app/features/lessons/lessons-pagination";
+import { useLessonsList } from "@/app/features/lessons/model/use-lessons-list";
 
 const statusMeta: Record<
   MediaStatusType,
@@ -107,82 +84,20 @@ const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
   year: "numeric",
 });
 
-const PAGE_SIZE = 12;
-const LESSONS_QUERY_KEY = ["lessons"] as const;
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const EMPTY_CREATE_LESSON_FORM: CreateLessonRequest = {
-  title: "",
-  description: "",
-  videoId: "",
-};
-
-const lessonsQueryOptions = (page: number) =>
-  queryOptions({
-    queryKey: [...LESSONS_QUERY_KEY, { page, pageSize: PAGE_SIZE }],
-    queryFn: ({ signal }) =>
-      lessonsApi.getLessons({ page, pageSize: PAGE_SIZE }, signal),
-  });
-
-type PaginationEntry = number | "start-ellipsis" | "end-ellipsis";
-
-const getPaginationEntries = (
-  currentPage: number,
-  totalPages: number,
-): PaginationEntry[] => {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, index) => index + 1);
-  }
-
-  if (currentPage <= 4) {
-    return [1, 2, 3, 4, 5, "end-ellipsis", totalPages];
-  }
-
-  if (currentPage >= totalPages - 3) {
-    return [
-      1,
-      "start-ellipsis",
-      totalPages - 4,
-      totalPages - 3,
-      totalPages - 2,
-      totalPages - 1,
-      totalPages,
-    ];
-  }
-
-  return [
-    1,
-    "start-ellipsis",
-    currentPage - 1,
-    currentPage,
-    currentPage + 1,
-    "end-ellipsis",
-    totalPages,
-  ];
-};
-
 export default function LessonsPage() {
-  const [currentPage, setCurrentPage] = useState(1);
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
-  const [createLessonForm, setCreateLessonForm] =
-    useState<CreateLessonRequest>(EMPTY_CREATE_LESSON_FORM);
-  const [createFormError, setCreateFormError] = useState<string | null>(null);
-  const queryClient = useQueryClient();
-  const { data, error, isFetching } = useQuery({
-    ...lessonsQueryOptions(currentPage),
-    placeholderData: keepPreviousData,
-  });
-
-  useEffect(() => {
-    if (!data || currentPage >= data.totalPages) {
-      return;
-    }
-
-    void queryClient.prefetchQuery(lessonsQueryOptions(currentPage + 1));
-  }, [currentPage, data, queryClient]);
-
-  const lessons = data?.items ?? [];
-  const totalCount = data?.totalCount ?? 0;
+  const {
+    lessons,
+    totalCount,
+    totalPages,
+    currentPage,
+    page,
+    pageSize,
+    error,
+    isFetching,
+    setCurrentPage,
+    refreshAfterLessonCreated,
+  } = useLessonsList();
   const loadError = error
     ? error instanceof Error
       ? error.message
@@ -192,66 +107,10 @@ export default function LessonsPage() {
   const readyLessons = lessons.filter(
     (lesson) => lesson.video?.status === MediaStatus.READY,
   ).length;
-  const totalPages = data?.totalPages ?? 0;
-  const paginationEntries = getPaginationEntries(currentPage, totalPages);
-  const isPreviousDisabled = currentPage === 1 || isFetching;
-  const isNextDisabled =
-    totalPages === 0 || currentPage >= totalPages || isFetching;
 
-  const createLessonMutation = useMutation({
-    mutationFn: (request: CreateLessonRequest) =>
-      lessonsApi.createLesson(request),
-    onSuccess: async () => {
-      const lastPage = Math.max(1, Math.ceil((totalCount + 1) / PAGE_SIZE));
-
-      setIsCreateSheetOpen(false);
-      setCreateLessonForm(EMPTY_CREATE_LESSON_FORM);
-      setCreateFormError(null);
-      setCurrentPage(lastPage);
-
-      await queryClient.invalidateQueries({ queryKey: LESSONS_QUERY_KEY });
-    },
-  });
-
-  const handleCreateLesson = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const request = {
-      title: createLessonForm.title.trim(),
-      description: createLessonForm.description.trim(),
-      videoId: createLessonForm.videoId.trim(),
-    };
-
-    if (!request.title || !request.description) {
-      setCreateFormError("Заполните название и описание урока");
-      return;
-    }
-
-    if (!UUID_PATTERN.test(request.videoId)) {
-      setCreateFormError("Укажите корректный UUID загруженного видео");
-      return;
-    }
-
-    setCreateFormError(null);
-    createLessonMutation.mutate(request);
-  };
-
-  const handleCreateSheetOpenChange = (open: boolean) => {
-    setIsCreateSheetOpen(open);
-
-    if (!open) {
-      setCreateLessonForm(EMPTY_CREATE_LESSON_FORM);
-      setCreateFormError(null);
-      createLessonMutation.reset();
-    }
-  };
-
-  const goToPage = (page: number) => {
-    if (isFetching || page === currentPage || page < 1 || page > totalPages) {
-      return;
-    }
-
-    setCurrentPage(page);
+  const handleLessonCreated = async () => {
+    setIsCreateSheetOpen(false);
+    await refreshAfterLessonCreated();
   };
 
   return (
@@ -282,7 +141,7 @@ export default function LessonsPage() {
 
       <Sheet
         open={isCreateSheetOpen}
-        onOpenChange={handleCreateSheetOpenChange}
+        onOpenChange={setIsCreateSheetOpen}
       >
         <SheetContent className="w-full sm:max-w-md">
           <SheetHeader className="border-b border-white/10 p-6 pr-14">
@@ -294,104 +153,10 @@ export default function LessonsPage() {
             </SheetDescription>
           </SheetHeader>
 
-          <form
-            className="flex min-h-0 flex-1 flex-col"
-            onSubmit={handleCreateLesson}
-          >
-            <div className="flex-1 space-y-5 overflow-y-auto px-6 py-2">
-              <Field>
-                <FieldLabel htmlFor="create-lesson-title">
-                  Название
-                </FieldLabel>
-                <Input
-                  id="create-lesson-title"
-                  value={createLessonForm.title}
-                  maxLength={200}
-                  required
-                  autoFocus
-                  onChange={(event) =>
-                    setCreateLessonForm((form) => ({
-                      ...form,
-                      title: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
-
-              <Field>
-                <FieldLabel htmlFor="create-lesson-description">
-                  Описание
-                </FieldLabel>
-                <textarea
-                  id="create-lesson-description"
-                  className="min-h-28 w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
-                  value={createLessonForm.description}
-                  maxLength={2000}
-                  required
-                  onChange={(event) =>
-                    setCreateLessonForm((form) => ({
-                      ...form,
-                      description: event.target.value,
-                    }))
-                  }
-                />
-              </Field>
-
-              <Field data-invalid={Boolean(createFormError)}>
-                <FieldLabel htmlFor="create-lesson-video-id">
-                  ID видео
-                </FieldLabel>
-                <Input
-                  id="create-lesson-video-id"
-                  value={createLessonForm.videoId}
-                  placeholder="00000000-0000-0000-0000-000000000000"
-                  required
-                  aria-invalid={Boolean(createFormError)}
-                  onChange={(event) =>
-                    setCreateLessonForm((form) => ({
-                      ...form,
-                      videoId: event.target.value,
-                    }))
-                  }
-                />
-                <FieldDescription>
-                  Видео должно быть заранее загружено в файловый сервис.
-                </FieldDescription>
-              </Field>
-
-              {createFormError ? (
-                <FieldError>{createFormError}</FieldError>
-              ) : null}
-
-              {createLessonMutation.error ? (
-                <FieldError>{createLessonMutation.error.message}</FieldError>
-              ) : null}
-            </div>
-
-            <SheetFooter className="border-t border-white/10 px-6 py-5">
-              <Button
-                type="submit"
-                disabled={createLessonMutation.isPending}
-              >
-                {createLessonMutation.isPending ? (
-                  <LoaderCircle className="size-4 animate-spin" />
-                ) : (
-                  <Plus className="size-4" />
-                )}
-                {createLessonMutation.isPending
-                  ? "Создание…"
-                  : "Создать урок"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={createLessonMutation.isPending}
-                onClick={() => handleCreateSheetOpenChange(false)}
-              >
-                Отмена
-              </Button>
-            </SheetFooter>
-          </form>
+          <CreateLessonForm
+            onCancel={() => setIsCreateSheetOpen(false)}
+            onLessonCreated={handleLessonCreated}
+          />
         </SheetContent>
       </Sheet>
 
@@ -486,10 +251,7 @@ export default function LessonsPage() {
                   <span className="absolute left-4 top-4 font-mono text-xs font-semibold text-white/50">
                     УРОК{" "}
                     {String(
-                      ((data?.page ?? currentPage) - 1) *
-                        (data?.pageSize ?? PAGE_SIZE) +
-                        index +
-                        1,
+                      (page - 1) * pageSize + index + 1,
                     ).padStart(2, "0")}
                   </span>
 
@@ -552,69 +314,12 @@ export default function LessonsPage() {
           })}
         </div>
 
-        {totalPages > 1 ? (
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  href="#lessons-list"
-                  text="Назад"
-                  aria-label="Перейти на предыдущую страницу"
-                  aria-disabled={isPreviousDisabled}
-                  tabIndex={isPreviousDisabled ? -1 : undefined}
-                  className={
-                    isPreviousDisabled
-                      ? "pointer-events-none opacity-50"
-                      : undefined
-                  }
-                  onClick={(event) => {
-                    event.preventDefault();
-                    goToPage(currentPage - 1);
-                  }}
-                />
-              </PaginationItem>
-
-              {paginationEntries.map((entry) => (
-                <PaginationItem key={entry}>
-                  {typeof entry === "number" ? (
-                    <PaginationLink
-                      href="#lessons-list"
-                      isActive={entry === currentPage}
-                      aria-label={`Перейти на страницу ${entry}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        goToPage(entry);
-                      }}
-                    >
-                      {entry}
-                    </PaginationLink>
-                  ) : (
-                    <PaginationEllipsis />
-                  )}
-                </PaginationItem>
-              ))}
-
-              <PaginationItem>
-                <PaginationNext
-                  href="#lessons-list"
-                  text="Вперёд"
-                  aria-label="Перейти на следующую страницу"
-                  aria-disabled={isNextDisabled}
-                  tabIndex={isNextDisabled ? -1 : undefined}
-                  className={
-                    isNextDisabled
-                      ? "pointer-events-none opacity-50"
-                      : undefined
-                  }
-                  onClick={(event) => {
-                    event.preventDefault();
-                    goToPage(currentPage + 1);
-                  }}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        ) : null}
+        <LessonsPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isFetching={isFetching}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </section>
   );
