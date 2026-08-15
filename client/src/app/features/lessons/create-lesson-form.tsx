@@ -1,16 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { LoaderCircle, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
-import { lessonsApi } from "@/app/entities/lessons/api";
 import {
   createLessonSchema,
   type CreateLessonRequest,
 } from "@/app/entities/lessons/schema";
+import { useCreateLesson } from "@/app/features/lessons/model/use-create-lesson";
+import { getErrorMessage } from "@/shared/api/errors";
 import { Button } from "@/shared/components/ui/button";
 import {
   Field,
@@ -46,17 +45,10 @@ export function CreateLessonForm({
     defaultValues: EMPTY_FORM,
   });
 
-  const createLessonMutation = useMutation({
-    mutationFn: lessonsApi.createLesson,
+  const createLessonMutation = useCreateLesson({
     onSuccess: async () => {
-      toast.success("Урок успешно создан");
       reset();
       await onLessonCreated();
-    },
-    onError: (error) => {
-      toast.error("Не удалось создать урок", {
-        description: error.message,
-      });
     },
   });
 
@@ -150,7 +142,9 @@ export function CreateLessonForm({
         </Field>
 
         {createLessonMutation.error ? (
-          <FieldError>{createLessonMutation.error.message}</FieldError>
+          <FieldError role="alert">
+            {getErrorMessage(createLessonMutation.error)}
+          </FieldError>
         ) : null}
       </div>
 

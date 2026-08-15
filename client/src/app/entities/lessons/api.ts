@@ -1,5 +1,9 @@
 import { apiClient } from "@/shared/api/axios-nstance";
-import axios from "axios";
+import {
+  type APIEnvelope,
+  toAPIError,
+  unwrapAPIEnvelope,
+} from "@/shared/api/errors";
 import type { Lesson, MediaDto } from "./types";
 import type { CreateLessonRequest } from "./schema";
 
@@ -8,32 +12,6 @@ export type GetLessonRequest = {
   page: number;
   pageSize: number;
 };
-
-export type Envelope<T = unknown> = {
-  result: T | null;
-  error: ApiError | null;
-  isError: boolean;
-  timeGenerated: string;
-};
-
-export type ApiError = {
-  messages: ErrorMessage[];
-  type: ErrorType;
-};
-
-export type ErrorMessage = {
-  code: string;
-  message: string;
-  invalidField?: string | null;
-};
-
-export type ErrorType =
-  | "validation"
-  | "not_found"
-  | "failure"
-  | "conflict"
-  | "authentication"
-  | "authorization";
 
 type LessonDto = Omit<Lesson, "createdAt" | "updatedAt" | "video"> & {
   video: MediaDto | null;
@@ -55,30 +33,6 @@ export type PaginatedLessons = {
   page: number;
   pageSize: number;
   totalPages: number;
-};
-
-const getEnvelopeResult = <T>(envelope: Envelope<T>): T => {
-  if (envelope.isError || envelope.result === null) {
-    const message = envelope.error?.messages
-      .map((errorMessage) => errorMessage.message)
-      .join("; ");
-
-    throw new Error(message || "Сервер вернул пустой ответ");
-  }
-
-  return envelope.result;
-};
-
-const getApiErrorMessage = (error: unknown): string => {
-  if (!axios.isAxiosError<Envelope>(error)) {
-    return error instanceof Error ? error.message : "Неизвестная ошибка";
-  }
-
-  const message = error.response?.data.error?.messages
-    .map((errorMessage) => errorMessage.message)
-    .join("; ");
-
-  return message || error.message;
 };
 
 const parseDate = (value: string): Date => {
@@ -103,34 +57,38 @@ export const lessonsApi = {
     request: GetLessonRequest,
     signal?: AbortSignal,
   ): Promise<PaginatedLessons> => {
-    const response = await apiClient.get<
-      Envelope<PaginationLessonResponse<LessonDto>>
-    >("/lessons", {
+    try {
+      const response = await apiClient.get<
+        APIEnvelope<PaginationLessonResponse<LessonDto>>
+      >("/lessons", {
         params: request,
         signal,
-    });
+      });
 
-    const result = getEnvelopeResult(response.data);
+      const result = unwrapAPIEnvelope(response.data);
 
-    return {
-      items: result.items.map(mapLesson),
-      totalCount: result.totalCount,
-      page: result.page,
-      pageSize: result.pageSize,
-      totalPages: result.totalPages,
-    };
+      return {
+        items: result.items.map(mapLesson),
+        totalCount: result.totalCount,
+        page: result.page,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages,
+      };
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось загрузить уроки");
+    }
   },
 
   createLesson: async (request: CreateLessonRequest): Promise<string> => {
     try {
-      const response = await apiClient.post<Envelope<string>>(
+      const response = await apiClient.post<APIEnvelope<string>>(
         "/lessons",
         request,
       );
 
-      return getEnvelopeResult(response.data);
-    } catch (error) {
-      throw new Error(getApiErrorMessage(error));
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось создать урок");
     }
   },
 };
