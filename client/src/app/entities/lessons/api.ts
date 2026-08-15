@@ -1,12 +1,7 @@
 import { apiClient } from "@/shared/api/axios-nstance";
 import axios from "axios";
 import type { Lesson, MediaDto } from "./types";
-
-export type CreateLessonRequest = {
-  title: string;
-  description: string;
-  videoId: string;
-};
+import type { CreateLessonRequest } from "./schema";
 
 export type GetLessonRequest = {
   search?: string;
