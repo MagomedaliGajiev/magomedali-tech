@@ -9,6 +9,7 @@ import type { CreateLessonRequest } from "./schema";
 
 export type GetLessonRequest = {
   search?: string;
+  isDeleted: boolean;
   page: number;
   pageSize: number;
 };

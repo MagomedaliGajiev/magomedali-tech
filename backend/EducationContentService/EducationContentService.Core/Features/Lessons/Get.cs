@@ -74,14 +74,18 @@ public sealed class GetHandler
             return validationResult.ToError();
         }
 
-        IQueryable<Lesson> query = _readDbContext.LessonsQuery;
+        IQueryable<Lesson> query = request.IsDeleted
+            ? _readDbContext.LessonsQuery
+                .IgnoreQueryFilters()
+                .Where(lesson => lesson.IsDeleted)
+            : _readDbContext.LessonsQuery;
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             // EF Core translates ToLower()/Contains into a SQL LOWER(...) LIKE expression.
             // The culture/comparison analyzer overloads can't be translated, so they don't apply here.
 #pragma warning disable CA1304, CA1311, CA1862
-            string search = request.Search.ToLower();
+            string search = request.Search.Trim().ToLower();
             query = query.Where(l => l.Title.Value.ToLower().Contains(search));
 #pragma warning restore CA1304, CA1311, CA1862
         }

@@ -9,10 +9,11 @@ import {
   MoreHorizontal,
   Play,
   Plus,
-  Search,
   UploadCloud,
   Video,
 } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   MediaStatus,
@@ -26,7 +27,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/components/ui/card";
-import { Input } from "@/shared/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -34,8 +34,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/shared/components/ui/sheet";
-import { useCallback, useRef, useState } from "react";
 import { CreateLessonForm } from "@/app/features/lessons/create-lesson-form";
+import { LessonsFilters } from "@/app/features/lessons/lessons-filters";
+import { useLessonsFiltersStore } from "@/app/features/lessons/model/lessons-filters-store";
 import { useLessonsList } from "@/app/features/lessons/model/use-lessons-list";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 
@@ -87,6 +88,13 @@ const dateFormatter = new Intl.DateTimeFormat("ru-RU", {
 
 export default function LessonsPage() {
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
+  const { search, isDeleted, resetFilters } = useLessonsFiltersStore(
+    useShallow((state) => ({
+      search: state.search,
+      isDeleted: state.isDeleted,
+      resetFilters: state.reset,
+    })),
+  );
   const {
     lessons,
     totalCount,
@@ -101,11 +109,16 @@ export default function LessonsPage() {
     refreshAfterLessonCreated,
   } = useLessonsList();
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const hasResultFilters = search.trim().length > 0 || isDeleted;
   const loadError = error
     ? error instanceof Error
       ? error.message
       : "Не удалось загрузить уроки"
     : null;
+
+  useEffect(() => {
+    void useLessonsFiltersStore.persist.rehydrate();
+  }, []);
 
   const loadMoreRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -191,7 +204,7 @@ export default function LessonsPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl bg-card p-4 ring-1 ring-white/10">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Всего уроков
+            Найдено уроков
           </p>
           <p className="mt-2 text-2xl font-bold">{totalCount}</p>
         </div>
@@ -213,35 +226,12 @@ export default function LessonsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-xl bg-card p-3 ring-1 ring-white/10 md:flex-row md:items-center">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            className="h-10 bg-background/40 pl-9"
-            placeholder="Найти урок по названию…"
-            aria-label="Поиск уроков"
-          />
-        </div>
-        <div className="flex gap-1 overflow-x-auto rounded-lg bg-background/40 p-1">
-          <Button size="sm" className="shrink-0 px-3">
-            Все
-          </Button>
-          <Button size="sm" variant="ghost" className="shrink-0 px-3">
-            Готовы
-          </Button>
-          <Button size="sm" variant="ghost" className="shrink-0 px-3">
-            В обработке
-          </Button>
-        </div>
-      </div>
+      <LessonsFilters isFetching={isFetching && !isFetchingNextPage} />
 
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold tracking-[-0.02em]">
-            Все уроки
+            {isDeleted ? "Удалённые уроки" : "Активные уроки"}
           </h2>
           <span className="text-sm text-muted-foreground">
             {isPending
@@ -250,7 +240,7 @@ export default function LessonsPage() {
           </span>
         </div>
 
-        {loadError && lessons.length === 0 ? (
+        {loadError && !isFetchNextPageError ? (
           <div
             className="mb-4 flex flex-col items-start gap-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-300 ring-1 ring-red-400/20 sm:flex-row sm:items-center sm:justify-between"
             role="alert"
@@ -373,8 +363,17 @@ export default function LessonsPage() {
         </div>
 
         {!isPending && lessons.length === 0 && !loadError ? (
-          <div className="mt-6 rounded-xl bg-card p-8 text-center text-sm text-muted-foreground ring-1 ring-white/10">
-            Уроков пока нет. Добавьте первый материал курса.
+          <div className="mt-6 flex flex-col items-center gap-3 rounded-xl bg-card p-8 text-center text-sm text-muted-foreground ring-1 ring-white/10">
+            <span>
+              {hasResultFilters
+                ? "По заданным фильтрам уроков не найдено."
+                : "Уроков пока нет. Добавьте первый материал курса."}
+            </span>
+            {hasResultFilters ? (
+              <Button type="button" variant="outline" onClick={resetFilters}>
+                Сбросить фильтры
+              </Button>
+            ) : null}
           </div>
         ) : null}
 

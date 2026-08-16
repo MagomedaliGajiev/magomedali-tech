@@ -5,6 +5,7 @@ using EducationContentService.Domain.ValueObjects;
 using EducationContentService.IntegrationTests.Infrastructure;
 using FileService.Contracts;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Shared.SharedKernel;
 
 namespace EducationContentService.IntegrationTests.Features.Lessons;
@@ -85,5 +86,49 @@ public class GetLessonsTests : EducationTestsBase
         Assert.Equal(
             expectedVideoIds,
             lessonsResponse.Value.Items.Select(lesson => lesson.Video!.Id));
+
+        await ExecuteInDb(async dbContext =>
+        {
+            Lesson lessonToDelete = await dbContext.Lessons
+                .SingleAsync(lesson => lesson.Id == lessons[0].Id, cancellationToken);
+            lessonToDelete.SoftDelete();
+            await dbContext.SaveChangesAsync(cancellationToken);
+        });
+
+        PaginationLessonResponse activeSearchResponse = await GetLessons(
+            "  LESSON 2  ",
+            false,
+            cancellationToken);
+        PaginationLessonResponse deletedSearchResponse = await GetLessons(
+            "Lesson 1",
+            true,
+            cancellationToken);
+
+        Assert.Equal(1, activeSearchResponse.TotalCount);
+        Assert.Equal(lessons[1].Id, Assert.Single(activeSearchResponse.Items).Id);
+        Assert.Equal(1, deletedSearchResponse.TotalCount);
+        Assert.Equal(lessons[0].Id, Assert.Single(deletedSearchResponse.Items).Id);
+    }
+
+    private async Task<PaginationLessonResponse> GetLessons(
+        string search,
+        bool isDeleted,
+        CancellationToken cancellationToken)
+    {
+        var queryParams = new Dictionary<string, string?>
+        {
+            ["search"] = search,
+            ["isDeleted"] = isDeleted.ToString(),
+            ["page"] = "1",
+            ["pageSize"] = "10",
+        };
+
+        string url = QueryHelpers.AddQueryString("api/lessons", queryParams);
+        HttpResponseMessage response = await AppHttpClient.GetAsync(url, cancellationToken);
+        Result<PaginationLessonResponse, Error> result = await response
+            .HandleResponseAsync<PaginationLessonResponse>(cancellationToken);
+
+        Assert.True(result.IsSuccess);
+        return result.Value;
     }
 }
