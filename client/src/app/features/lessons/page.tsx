@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   Clock3,
+  LoaderCircle,
   MoreHorizontal,
   Play,
   Plus,
@@ -33,10 +34,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/shared/components/ui/sheet";
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { CreateLessonForm } from "@/app/features/lessons/create-lesson-form";
-import { LessonsPagination } from "@/app/features/lessons/lessons-pagination";
 import { useLessonsList } from "@/app/features/lessons/model/use-lessons-list";
+import { Skeleton } from "@/shared/components/ui/skeleton";
 
 const statusMeta: Record<
   MediaStatusType,
@@ -89,20 +90,47 @@ export default function LessonsPage() {
   const {
     lessons,
     totalCount,
-    totalPages,
-    currentPage,
-    page,
-    pageSize,
     error,
+    fetchNextPage,
+    hasNextPage,
     isFetching,
-    setCurrentPage,
+    isFetchingNextPage,
+    isFetchNextPageError,
+    isPending,
+    refetch,
     refreshAfterLessonCreated,
   } = useLessonsList();
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const loadError = error
     ? error instanceof Error
       ? error.message
       : "Не удалось загрузить уроки"
     : null;
+
+  const loadMoreRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+
+      if (!node || !hasNextPage || isFetching) {
+        return;
+      }
+
+      observerRef.current = new IntersectionObserver(
+        ([entry]) => {
+          if (entry?.isIntersecting) {
+            void fetchNextPage();
+          }
+        },
+        {
+          rootMargin: "300px 0px",
+          threshold: 0.5,
+        },
+      );
+      observerRef.current.observe(node);
+    },
+    [fetchNextPage, hasNextPage, isFetching],
+  );
 
   const readyLessons = lessons.filter(
     (lesson) => lesson.video?.status === MediaStatus.READY,
@@ -169,7 +197,7 @@ export default function LessonsPage() {
         </div>
         <div className="rounded-xl bg-card p-4 ring-1 ring-white/10">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            Готовы на странице
+            Готовы среди загруженных
           </p>
           <p className="mt-2 text-2xl font-bold text-emerald-300">
             {readyLessons}
@@ -177,7 +205,7 @@ export default function LessonsPage() {
         </div>
         <div className="rounded-xl bg-card p-4 ring-1 ring-white/10">
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-            В подготовке на странице
+            В подготовке среди загруженных
           </p>
           <p className="mt-2 text-2xl font-bold text-amber-300">
             {lessons.length - readyLessons}
@@ -216,24 +244,56 @@ export default function LessonsPage() {
             Все уроки
           </h2>
           <span className="text-sm text-muted-foreground">
-            {isFetching ? "Загрузка…" : `${totalCount} материалов`}
+            {isPending
+              ? "Загрузка…"
+              : `${lessons.length} из ${totalCount} материалов`}
           </span>
         </div>
 
-        {loadError ? (
+        {loadError && lessons.length === 0 ? (
           <div
-            className="mb-4 rounded-xl bg-red-500/10 p-4 text-sm text-red-300 ring-1 ring-red-400/20"
+            className="mb-4 flex flex-col items-start gap-3 rounded-xl bg-red-500/10 p-4 text-sm text-red-300 ring-1 ring-red-400/20 sm:flex-row sm:items-center sm:justify-between"
             role="alert"
           >
-            Не удалось загрузить уроки: {loadError}
+            <span>Не удалось загрузить уроки: {loadError}</span>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void refetch()}
+            >
+              Повторить
+            </Button>
           </div>
         ) : null}
 
         <div
           id="lessons-list"
           className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
-          aria-busy={isFetching}
+          aria-busy={isPending || isFetchingNextPage}
         >
+          {isPending
+            ? Array.from({ length: 6 }, (_, index) => (
+                <Card
+                  key={index}
+                  className="gap-0 overflow-hidden border-0 py-0"
+                  aria-hidden="true"
+                >
+                  <Skeleton className="aspect-video rounded-none" />
+                  <CardHeader className="gap-3 p-4 pb-2">
+                    <Skeleton className="h-5 w-4/5" />
+                  </CardHeader>
+                  <CardContent className="space-y-2 px-4 pb-4">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardContent>
+                  <CardFooter className="border-white/10 px-4 py-3">
+                    <Skeleton className="h-4 w-24" />
+                  </CardFooter>
+                </Card>
+              ))
+            : null}
+
           {lessons.map((lesson, index) => {
             const mediaStatus = lesson.video?.status;
             const status = mediaStatus ? statusMeta[mediaStatus] : null;
@@ -250,9 +310,7 @@ export default function LessonsPage() {
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(255,255,255,0.14),transparent_35%)]" />
                   <span className="absolute left-4 top-4 font-mono text-xs font-semibold text-white/50">
                     УРОК{" "}
-                    {String(
-                      (page - 1) * pageSize + index + 1,
-                    ).padStart(2, "0")}
+                    {String(index + 1).padStart(2, "0")}
                   </span>
 
                   {mediaStatus === MediaStatus.READY ? (
@@ -314,12 +372,57 @@ export default function LessonsPage() {
           })}
         </div>
 
-        <LessonsPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          isFetching={isFetching}
-          onPageChange={setCurrentPage}
-        />
+        {!isPending && lessons.length === 0 && !loadError ? (
+          <div className="mt-6 rounded-xl bg-card p-8 text-center text-sm text-muted-foreground ring-1 ring-white/10">
+            Уроков пока нет. Добавьте первый материал курса.
+          </div>
+        ) : null}
+
+        {lessons.length > 0 ? (
+          <div
+            ref={loadMoreRef}
+            className="mt-6 flex min-h-16 items-center justify-center"
+            aria-live="polite"
+          >
+            {isFetchingNextPage ? (
+              <span
+                className="inline-flex items-center gap-2 text-sm text-muted-foreground"
+                role="status"
+              >
+                <LoaderCircle
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+                Загружаем ещё уроки…
+              </span>
+            ) : isFetchNextPageError ? (
+              <div className="flex flex-col items-center gap-2 text-sm text-red-300">
+                <span>Не удалось загрузить следующую страницу.</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void fetchNextPage()}
+                >
+                  Повторить
+                </Button>
+              </div>
+            ) : hasNextPage ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => void fetchNextPage()}
+                disabled={isFetching}
+              >
+                Загрузить ещё
+              </Button>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                Все уроки загружены
+              </span>
+            )}
+          </div>
+        ) : null}
       </div>
     </section>
   );
