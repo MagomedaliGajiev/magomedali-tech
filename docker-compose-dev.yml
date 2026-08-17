@@ -11,11 +11,54 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
       - ASPNETCORE_URLS=http://+:8001
-      - FileServiceOptions__Url=http://host.docker.internal:8002
+      - FileServiceOptions__Url=http://file-service:8002
     env_file:
       - path: education.service.env
         required: false
+    depends_on:
+      file-service:
+        condition: service_started
     restart: always
+
+  file-service:
+    container_name: file-service
+    build:
+      context: ./backend
+      dockerfile: FileService/Dockerfile
+      secrets:
+        - gh_token
+    ports:
+      - "8002:8002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:8002
+    depends_on:
+      file-service-db-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      redis:
+        condition: service_started
+      seq:
+        condition: service_started
+    restart: always
+
+  file-service-db-init:
+    image: postgres
+    environment:
+      PGPASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - >
+        psql -h postgres -U postgres -d postgres -tAc
+        "SELECT 1 FROM pg_database WHERE datname = 'file_service_db'" | grep -q 1 ||
+        psql -h postgres -U postgres -d postgres -c "CREATE DATABASE file_service_db"
+    restart: "no"
+
   seq:
     container_name: seq-magomedali-tech
     image: datalust/seq:latest
