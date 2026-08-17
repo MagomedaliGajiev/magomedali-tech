@@ -1,35 +1,29 @@
 ﻿FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 9001
+EXPOSE 8001
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["EducationContentService/EducationContentService.Web/EducationContentService.Web.csproj", "EducationContentService/EducationContentService.Web/"]
-COPY ["EducationContentService/EducationContentService.Contracts/EducationContentService.Contracts.csproj", "EducationContentService/EducationContentService.Contracts/"]
-COPY ["EducationContentService/EducationContentService.Domain/EducationContentService.Domain.csproj", "EducationContentService/EducationContentService.Domain/"]
-COPY ["EducationContentService/EducationContentService.Infrastructure.Postgres/EducationContentService.Infrastructure.Postgres.csproj", "EducationContentService/EducationContentService.Infrastructure.Postgres/"]
-COPY ["EducationContentService/EducationContentService.Core/EducationContentService.Core.csproj", "EducationContentService/EducationContentService.Core/"]
-COPY ["FileService/FileService.Contracts/FileService.Contracts.csproj", "FileService/FileService.Contracts/"]
-
-COPY ["EducationContentService/Directory.Build.props", "EducationContentService/"]
-COPY ["EducationContentService/Directory.Packages.props", "EducationContentService/"]
-COPY ["EducationContentService/nuget.config", "EducationContentService/"]
-COPY ["FileService/Directory.Build.props", "FileService/"]
-COPY ["FileService/Directory.Packages.props", "FileService/"]
+COPY ["nuget.config", "./nuget.config"]
+COPY [".editorconfig", "./.editorconfig"]
+COPY ["EducationContentService/", "EducationContentService/"]
 
 RUN --mount=type=secret,id=gh_token \
+    --mount=type=cache,id=education-content-nuget,target=/root/.nuget/packages \
     GH_PACKAGES_TOKEN="$(cat /run/secrets/gh_token)" \
+    DOTNET_SYSTEM_NET_HTTP_SOCKETSHTTPHANDLER_HTTP2SUPPORT=false \
     dotnet restore "EducationContentService/EducationContentService.Web/EducationContentService.Web.csproj" \
-        --configfile "EducationContentService/nuget.config"
-COPY . .
+        --configfile "nuget.config"
 WORKDIR "/src/EducationContentService/EducationContentService.Web"
-RUN dotnet build "./EducationContentService.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN --mount=type=cache,id=education-content-nuget,target=/root/.nuget/packages \
+    dotnet build "./EducationContentService.Web.csproj" -c $BUILD_CONFIGURATION -o /app/build --no-restore
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./EducationContentService.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN --mount=type=cache,id=education-content-nuget,target=/root/.nuget/packages \
+    dotnet publish "./EducationContentService.Web.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false --no-restore
 
 FROM base AS final
 WORKDIR /app

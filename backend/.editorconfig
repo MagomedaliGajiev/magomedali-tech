@@ -1,4 +1,4 @@
-# editorconfig.org
+﻿# editorconfig.org
 
 root = true
 
@@ -20,6 +20,7 @@ dotnet_diagnostic.CA1008.severity = none
 
 # StyleCop - отключение правил форматирования
 dotnet_diagnostic.SA1516.severity = none
+dotnet_diagnostic.SA1518.severity = none
 dotnet_diagnostic.SA1413.severity = none
 dotnet_diagnostic.SA1649.severity = none
 
