@@ -23,8 +23,7 @@ public static class AppExtensions
         app.UseSwagger();
         app.UseSwaggerUI();
 
-        RouteGroupBuilder apiGroup = app.MapGroup("/api");
-        app.MapEndpoints(apiGroup);
+        app.MapEndpoints();
 
         return app;
     }
