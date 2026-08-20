@@ -1,4 +1,22 @@
 services:
+  frontend:
+    container_name: frontend-magomedali-tech
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./client/.env
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      education-content-service:
+        condition: service_started
+    restart: always
+
   education-content-service:
     container_name: education-content-service
     build:
@@ -16,9 +34,27 @@ services:
       - path: education.service.env
         required: false
     depends_on:
+      education-content-migrations:
+        condition: service_completed_successfully
       file-service:
         condition: service_started
     restart: always
+
+  education-content-migrations:
+    container_name: education-content-migrations
+    build:
+      context: ./backend
+      dockerfile: EducationContentService/Dockerfile
+      secrets:
+        - gh_token
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - ./efbundle
+      - --connection
+      - Host=postgres;Port=5432;Database=education_content;Username=postgres;Password=postgres
 
   file-service:
     container_name: file-service
