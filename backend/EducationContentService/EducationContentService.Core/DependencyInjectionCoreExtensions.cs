@@ -14,6 +14,7 @@ public static class DependencyInjectionCoreExtensions
         services.AddScoped<GetHandler>();
         services.AddScoped<SoftDeleteHandler>();
         services.AddScoped<UpdateInfoHandler>();
+        services.AddScoped<UpdateVideoHandler>();
 
         services.AddValidatorsFromAssembly(typeof(DependencyInjectionCoreExtensions).Assembly);
         services.AddFileServiceHttpCommunication(configuration);

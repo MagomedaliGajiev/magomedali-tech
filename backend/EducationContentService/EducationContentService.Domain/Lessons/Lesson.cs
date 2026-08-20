@@ -50,4 +50,10 @@ public sealed class Lesson
         Description = description;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void UpdateVideo(Guid videoId)
+    {
+        VideoId = videoId;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }

@@ -92,4 +92,32 @@ export const lessonsApi = {
       throw toAPIError(error, "Не удалось создать урок");
     }
   },
+
+  deleteLesson: async (lessonId: string): Promise<string> => {
+    try {
+      const response = await apiClient.delete<APIEnvelope<string>>(
+        `/lessons/${lessonId}`,
+      );
+
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось удалить урок");
+    }
+  },
+
+  updateLessonVideo: async (
+    lessonId: string,
+    videoId: string,
+  ): Promise<string> => {
+    try {
+      const response = await apiClient.patch<APIEnvelope<string>>(
+        `/lessons/${lessonId}/video`,
+        { videoId },
+      );
+
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось привязать видео к уроку");
+    }
+  },
 };

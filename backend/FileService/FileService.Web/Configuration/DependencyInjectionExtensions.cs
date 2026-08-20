@@ -12,6 +12,7 @@ public static class DependencyInjectionExtensions
 {
     public static IServiceCollection AddConfiguration(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddCors();
         services
             .AddSerilogLogging(configuration, "FileService")
             .AddOpenApiSpec("FileService", "v1")

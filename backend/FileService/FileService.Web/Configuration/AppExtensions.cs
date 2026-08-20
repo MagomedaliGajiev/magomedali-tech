@@ -8,6 +8,12 @@ public static class AppExtensions
 {
     public static IApplicationBuilder Configure(this WebApplication app)
     {
+        app.UseCors(policy => policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .WithExposedHeaders("ETag"));
+
         app.UseExceptionMiddleware();
         app.UseRequestCorrelationId();
         app.UseSerilogRequestLogging();

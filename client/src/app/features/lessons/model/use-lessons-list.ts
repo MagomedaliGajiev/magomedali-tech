@@ -55,7 +55,7 @@ export function useLessonsList() {
   const lessons = query.data?.pages.flatMap((page) => page.items) ?? [];
   const totalCount = query.data?.pages[0]?.totalCount ?? 0;
 
-  const refreshAfterLessonCreated = async () => {
+  const refreshLessons = async () => {
     await queryClient.invalidateQueries({ queryKey: LESSONS_QUERY_KEY });
   };
 
@@ -63,6 +63,7 @@ export function useLessonsList() {
     ...query,
     lessons,
     totalCount,
-    refreshAfterLessonCreated,
+    refreshAfterLessonCreated: refreshLessons,
+    refreshLessons,
   };
 }

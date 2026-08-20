@@ -1,14 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle, Plus } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { CheckCircle2, LoaderCircle, Plus, UploadCloud } from "lucide-react";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 
 import {
   createLessonSchema,
   type CreateLessonRequest,
 } from "@/app/entities/lessons/schema";
 import { useCreateLesson } from "@/app/features/lessons/model/use-create-lesson";
+import { VideoUploadDialog } from "@/app/features/videos/video-upload-dialog";
 import { getErrorMessage } from "@/shared/api/errors";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -37,13 +39,17 @@ export function CreateLessonForm({
 }: CreateLessonFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateLessonRequest>({
     resolver: zodResolver(createLessonSchema),
     defaultValues: EMPTY_FORM,
   });
+  const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false);
+  const videoId = useWatch({ control, name: "videoId" });
 
   const createLessonMutation = useCreateLesson({
     onSuccess: async () => {
@@ -63,7 +69,16 @@ export function CreateLessonForm({
   const handleCancel = () => {
     reset();
     createLessonMutation.reset();
+    setIsVideoUploadOpen(false);
     onCancel();
+  };
+
+  const handleVideoUploaded = (mediaAssetId: string) => {
+    setValue("videoId", mediaAssetId, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
   };
 
   return (
@@ -118,21 +133,41 @@ export function CreateLessonForm({
         </Field>
 
         <Field data-invalid={Boolean(errors.videoId)}>
-          <FieldLabel htmlFor="create-lesson-video-id">ID видео</FieldLabel>
-          <Input
-            id="create-lesson-video-id"
-            placeholder="00000000-0000-0000-0000-000000000000"
-            required
-            aria-invalid={Boolean(errors.videoId)}
-            aria-describedby={
-              errors.videoId
-                ? "create-lesson-video-id-description create-lesson-video-id-error"
-                : "create-lesson-video-id-description"
-            }
-            {...register("videoId")}
-          />
+          <FieldLabel>Видео урока</FieldLabel>
+          <input type="hidden" {...register("videoId")} />
+          <div className="flex items-center gap-3 rounded-lg border border-input bg-background/35 p-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+              {videoId ? (
+                <CheckCircle2
+                  className="size-5 text-emerald-400"
+                  aria-hidden="true"
+                />
+              ) : (
+                <UploadCloud className="size-5" aria-hidden="true" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">
+                {videoId ? "Видео загружено" : "Видео ещё не выбрано"}
+              </span>
+              {videoId ? (
+                <span className="block truncate font-mono text-xs text-muted-foreground">
+                  {videoId}
+                </span>
+              ) : null}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant={videoId ? "outline" : "default"}
+              disabled={isSubmitting}
+              onClick={() => setIsVideoUploadOpen(true)}
+            >
+              {videoId ? "Заменить" : "Загрузить"}
+            </Button>
+          </div>
           <FieldDescription id="create-lesson-video-id-description">
-            Видео должно быть заранее загружено в файловый сервис.
+            Файл загружается частями и обрабатывается после создания урока.
           </FieldDescription>
           {errors.videoId ? (
             <FieldError id="create-lesson-video-id-error">
@@ -166,6 +201,13 @@ export function CreateLessonForm({
           Отмена
         </Button>
       </SheetFooter>
+
+      <VideoUploadDialog
+        open={isVideoUploadOpen}
+        onOpenChange={setIsVideoUploadOpen}
+        onUploadComplete={handleVideoUploaded}
+        heading="Видео нового урока"
+      />
     </form>
   );
 }

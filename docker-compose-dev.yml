@@ -8,6 +8,10 @@ services:
       - "3000:3000"
     env_file:
       - ./client/.env
+    environment:
+      - API_INTERNAL_URL=http://education-content-service:8001
+      - FILE_API_INTERNAL_URL=http://file-service:8002
+      - STORAGE_INTERNAL_URL=http://minio:9000
     volumes:
       - ./client:/app
       - /app/node_modules
@@ -132,6 +136,7 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     command: server /data --console-address ":9002"
     volumes:
       - minio-data:/data
