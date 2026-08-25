@@ -383,7 +383,7 @@ export function VideoUploadDialog({
             <div>
               <p className="font-medium">Видео загружено</p>
               <p className="mt-1 text-sm text-emerald-200/75">
-                Файл передан в хранилище и поставлен в очередь на обработку.
+                Файл сохранён в хранилище и доступен для скачивания.
               </p>
             </div>
           </div>

@@ -46,9 +46,32 @@ const parseDate = (value: string): Date => {
   return date;
 };
 
+const getBrowserMediaUrl = (value: string | null): string | null => {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const url = new URL(value);
+
+    if (url.hostname === "minio") {
+      return `/storage${url.pathname}${url.search}`;
+    }
+  } catch {
+    return value;
+  }
+
+  return value;
+};
+
 const mapLesson = (lesson: LessonDto): Lesson => ({
   ...lesson,
-  video: lesson.video ?? undefined,
+  video: lesson.video
+    ? {
+        ...lesson.video,
+        url: getBrowserMediaUrl(lesson.video.url),
+      }
+    : undefined,
   createdAt: parseDate(lesson.createdAt),
   updatedAt: parseDate(lesson.updatedAt),
 });

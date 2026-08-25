@@ -42,6 +42,30 @@ type UpstreamResponse = {
   statusMessage?: string;
 };
 
+type StorageRouteContext = {
+  params: Promise<{ path: string[] }>;
+};
+
+const STORAGE_REQUEST_HEADERS = [
+  "range",
+  "if-match",
+  "if-none-match",
+  "if-modified-since",
+  "if-unmodified-since",
+] as const;
+
+const STORAGE_RESPONSE_HEADERS = [
+  "accept-ranges",
+  "cache-control",
+  "content-disposition",
+  "content-encoding",
+  "content-length",
+  "content-range",
+  "content-type",
+  "etag",
+  "last-modified",
+] as const;
+
 const uploadToStorage = (
   request: NextRequest,
   upstreamUrl: URL,
@@ -123,7 +147,7 @@ const uploadToStorage = (
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ path: string[] }> },
+  { params }: StorageRouteContext,
 ) {
   try {
     const { path } = await params;
@@ -170,4 +194,77 @@ export async function PUT(
 
     return Response.json({ error: message }, { status: 502 });
   }
+}
+
+const readFromStorage = async (
+  request: NextRequest,
+  { params }: StorageRouteContext,
+  method: "GET" | "HEAD",
+): Promise<Response> => {
+  try {
+    const { path } = await params;
+    const upstreamUrl = createUpstreamUrl(request, path);
+    const requestHeaders = new Headers();
+
+    for (const headerName of STORAGE_REQUEST_HEADERS) {
+      const value = request.headers.get(headerName);
+
+      if (value) {
+        requestHeaders.set(headerName, value);
+      }
+    }
+
+    const upstreamResponse = await fetch(upstreamUrl, {
+      // S3 presigned GET URLs include the HTTP method in their signature.
+      // Use GET upstream for a browser HEAD request, then discard the body.
+      method: "GET",
+      headers: requestHeaders,
+      cache: "no-store",
+      signal: request.signal,
+    });
+    const responseHeaders = new Headers();
+
+    for (const headerName of STORAGE_RESPONSE_HEADERS) {
+      const value = upstreamResponse.headers.get(headerName);
+
+      if (value) {
+        responseHeaders.set(headerName, value);
+      }
+    }
+
+    const responseHasBody =
+      method === "GET" &&
+      ![204, 205, 304].includes(upstreamResponse.status);
+
+    if (method === "HEAD") {
+      await upstreamResponse.body?.cancel();
+    }
+
+    return new Response(responseHasBody ? upstreamResponse.body : null, {
+      status: upstreamResponse.status,
+      statusText: upstreamResponse.statusText,
+      headers: responseHeaders,
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Не удалось получить файл из хранилища";
+
+    return Response.json({ error: message }, { status: 502 });
+  }
+};
+
+export async function GET(
+  request: NextRequest,
+  context: StorageRouteContext,
+) {
+  return readFromStorage(request, context, "GET");
+}
+
+export async function HEAD(
+  request: NextRequest,
+  context: StorageRouteContext,
+) {
+  return readFromStorage(request, context, "HEAD");
 }

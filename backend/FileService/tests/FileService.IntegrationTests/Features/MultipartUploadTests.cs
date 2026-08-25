@@ -47,7 +47,7 @@ public class MultipartUploadTests : FileServiceTestsBase
             MediaAsset? mediaAsset = await db.MediaAssets.FirstOrDefaultAsync(
                 m => m.Id == startMultipartUploadResponse.MediaAssetId, cancellationToken);
 
-            Assert.Equal(MediaStatus.UPLOADED, mediaAsset?.Status);
+            Assert.Equal(MediaStatus.READY, mediaAsset?.Status);
             Assert.NotNull(mediaAsset);
 
             IAmazonS3 amazonS3client = _factory.Services.GetRequiredService<IAmazonS3>();

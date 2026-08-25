@@ -75,6 +75,17 @@ public abstract class MediaAsset
         return UnitResult.Success<Error>();
     }
 
+    public UnitResult<Error> MarkReady()
+    {
+        if (Status != MediaStatus.UPLOADED)
+            return GeneralErrors.Failure($"Нельзя пометить медиафайл готовым в статусе {Status}");
+
+        Status = MediaStatus.READY;
+        UpdatedAt = DateTime.UtcNow;
+
+        return UnitResult.Success<Error>();
+    }
+
     public UnitResult<Error> MarkFailed()
     {
         Status = MediaStatus.FAILED;

@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Download,
   LoaderCircle,
   Play,
   Trash2,
@@ -23,7 +24,7 @@ import {
 import { useDeleteLesson } from "@/app/features/lessons/model/use-delete-lesson";
 import { VideoUploadDialog } from "@/app/features/videos/video-upload-dialog";
 import { getErrorMessage } from "@/shared/api/errors";
-import { Button } from "@/shared/components/ui/button";
+import { Button, buttonVariants } from "@/shared/components/ui/button";
 import {
   Card,
   CardContent,
@@ -196,28 +197,46 @@ export function LessonCard({
             <Clock3 className="size-3.5 shrink-0" aria-hidden="true" />
             {dateFormatter.format(lesson.createdAt)}
           </span>
-          {canManage ? (
+          {lesson.video?.url || canManage ? (
             <span className="flex items-center gap-1.5">
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-                Удалить
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="shrink-0"
-                onClick={() => setIsVideoDialogOpen(true)}
-              >
-                <UploadCloud className="size-4" aria-hidden="true" />
-                {lesson.video ? "Заменить" : "Загрузить видео"}
-              </Button>
+              {lesson.video?.url ? (
+                <a
+                  href={lesson.video.url}
+                  download
+                  className={buttonVariants({
+                    variant: "ghost",
+                    size: "sm",
+                    className: "shrink-0",
+                  })}
+                >
+                  <Download className="size-4" aria-hidden="true" />
+                  Скачать
+                </a>
+              ) : null}
+              {canManage ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    Удалить
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => setIsVideoDialogOpen(true)}
+                  >
+                    <UploadCloud className="size-4" aria-hidden="true" />
+                    {lesson.video ? "Заменить" : "Загрузить видео"}
+                  </Button>
+                </>
+              ) : null}
             </span>
           ) : null}
         </CardFooter>
@@ -228,7 +247,7 @@ export function LessonCard({
         onOpenChange={setIsVideoDialogOpen}
         onUploadComplete={handleUploadComplete}
         heading={lesson.video ? "Заменить видео" : "Загрузить видео"}
-        description={`Урок «${lesson.title}». После загрузки новое видео будет поставлено в очередь на обработку.`}
+        description={`Урок «${lesson.title}». После загрузки новое видео будет доступно для скачивания.`}
       />
 
       <Dialog

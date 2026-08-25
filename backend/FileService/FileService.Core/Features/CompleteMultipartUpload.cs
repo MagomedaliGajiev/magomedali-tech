@@ -83,6 +83,12 @@ public sealed class CompleteMultipartUploadHandler
         if (markUploadedResult.IsFailure)
             return markUploadedResult.Error;
 
+        // Raw uploads are immediately downloadable until a separate media
+        // processing pipeline is introduced.
+        UnitResult<Error> markReadyResult = mediaAsset.MarkReady();
+        if (markReadyResult.IsFailure)
+            return markReadyResult.Error;
+
         await _mediaAssetsRepository.SaveAsync(cancellationToken);
 
         _logger.LogInformation("File uploaded successfully. MediaAssetId: {MediaAssetId}", mediaAsset.Id);
