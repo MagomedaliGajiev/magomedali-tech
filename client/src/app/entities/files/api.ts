@@ -1,0 +1,104 @@
+import axios from "axios";
+
+import { apiClient } from "@/shared/api/axios-nstance";
+import {
+  type APIEnvelope,
+  ensureAPIEnvelopeSuccess,
+  toAPIError,
+  unwrapAPIEnvelope,
+} from "@/shared/api/errors";
+import { resolveBrowserStorageTarget } from "./storage-endpoint";
+import type {
+  CompleteMultipartUploadRequest,
+  StartMultipartUploadRequest,
+  StartMultipartUploadResponse,
+} from "./types";
+
+export const filesApi = {
+  startMultipartUpload: async (
+    request: StartMultipartUploadRequest,
+    signal?: AbortSignal,
+  ): Promise<StartMultipartUploadResponse> => {
+    try {
+      const response = await apiClient.post<
+        APIEnvelope<StartMultipartUploadResponse>
+      >("/files/multipart-upload", request, { signal });
+
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось начать загрузку файла");
+    }
+  },
+
+  uploadChunk: async ({
+    uploadUrl,
+    chunk,
+    contentType,
+    signal,
+    onProgress,
+  }: {
+    uploadUrl: string;
+    chunk: Blob;
+    contentType: string;
+    signal?: AbortSignal;
+    onProgress?: (loadedBytes: number) => void;
+  }): Promise<string> => {
+    try {
+      const target = resolveBrowserStorageTarget(uploadUrl);
+      const response = await axios.put(target.url, chunk, {
+        headers: {
+          "Content-Type": contentType,
+          ...(target.signedHost
+            ? { "X-Storage-Signed-Host": target.signedHost }
+            : {}),
+        },
+        signal,
+        onUploadProgress: (event) => onProgress?.(event.loaded),
+      });
+      const eTag = response.headers.etag;
+
+      if (typeof eTag !== "string" || eTag.trim().length === 0) {
+        throw new Error(
+          "Хранилище не вернуло ETag. Проверьте CORS и ExposeHeaders для ETag.",
+        );
+      }
+
+      return eTag.trim().replace(/^W\//, "").replace(/^\"|\"$/g, "");
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось загрузить часть файла");
+    }
+  },
+
+  completeMultipartUpload: async (
+    request: CompleteMultipartUploadRequest,
+    signal?: AbortSignal,
+  ): Promise<void> => {
+    try {
+      const response = await apiClient.post<APIEnvelope<null>>(
+        "/files/complete-upload",
+        request,
+        { signal },
+      );
+
+      ensureAPIEnvelopeSuccess(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось завершить загрузку файла");
+    }
+  },
+
+  deleteMediaAsset: async (
+    mediaAssetId: string,
+    uploadId?: string,
+  ): Promise<string> => {
+    try {
+      const response = await apiClient.delete<APIEnvelope<string>>(
+        `/files/${mediaAssetId}`,
+        { params: uploadId ? { uploadId } : undefined },
+      );
+
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось удалить файл");
+    }
+  },
+};

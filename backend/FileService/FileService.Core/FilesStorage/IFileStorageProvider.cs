@@ -36,4 +36,8 @@ public interface IFileStorageProvider
         StorageKey storageKey,
         string uploadId,
         CancellationToken cancellationToken);
+
+    Task<UnitResult<Error>> DeleteAsync(
+        StorageKey storageKey,
+        CancellationToken cancellationToken);
 }

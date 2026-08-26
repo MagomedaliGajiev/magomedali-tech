@@ -9,6 +9,7 @@ import {
   createLessonSchema,
   type CreateLessonRequest,
 } from "@/app/entities/lessons/schema";
+import { filesApi } from "@/app/entities/files/api";
 import { useCreateLesson } from "@/app/features/lessons/model/use-create-lesson";
 import { VideoUploadDialog } from "@/app/features/videos/video-upload-dialog";
 import { getErrorMessage } from "@/shared/api/errors";
@@ -23,6 +24,7 @@ import { Input } from "@/shared/components/ui/input";
 import { SheetFooter } from "@/shared/components/ui/sheet";
 
 const EMPTY_FORM: CreateLessonRequest = {
+  id: "",
   title: "",
   description: "",
   videoId: "",
@@ -40,6 +42,7 @@ export function CreateLessonForm({
   const {
     register,
     control,
+    getValues,
     handleSubmit,
     reset,
     setValue,
@@ -49,6 +52,7 @@ export function CreateLessonForm({
     defaultValues: EMPTY_FORM,
   });
   const [isVideoUploadOpen, setIsVideoUploadOpen] = useState(false);
+  const lessonId = useWatch({ control, name: "id" });
   const videoId = useWatch({ control, name: "videoId" });
 
   const createLessonMutation = useCreateLesson({
@@ -74,11 +78,30 @@ export function CreateLessonForm({
   };
 
   const handleVideoUploaded = (mediaAssetId: string) => {
+    const previousVideoId = getValues("videoId");
     setValue("videoId", mediaAssetId, {
       shouldDirty: true,
       shouldTouch: true,
       shouldValidate: true,
     });
+
+    if (previousVideoId && previousVideoId !== mediaAssetId) {
+      void filesApi.deleteMediaAsset(previousVideoId).catch((error: unknown) => {
+        console.error("Не удалось удалить заменённое видео", error);
+      });
+    }
+  };
+
+  const handleOpenVideoUpload = () => {
+    if (!getValues("id")) {
+      setValue("id", crypto.randomUUID(), {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }
+
+    setIsVideoUploadOpen(true);
   };
 
   return (
@@ -87,6 +110,7 @@ export function CreateLessonForm({
       noValidate
       onSubmit={handleSubmit(onSubmit)}
     >
+      <input type="hidden" {...register("id")} />
       <div className="flex-1 space-y-5 overflow-y-auto px-6 py-2">
         <Field data-invalid={Boolean(errors.title)}>
           <FieldLabel htmlFor="create-lesson-title">Название</FieldLabel>
@@ -161,7 +185,7 @@ export function CreateLessonForm({
               size="sm"
               variant={videoId ? "outline" : "default"}
               disabled={isSubmitting}
-              onClick={() => setIsVideoUploadOpen(true)}
+              onClick={handleOpenVideoUpload}
             >
               {videoId ? "Заменить" : "Загрузить"}
             </Button>
@@ -204,6 +228,7 @@ export function CreateLessonForm({
 
       <VideoUploadDialog
         open={isVideoUploadOpen}
+        ownerId={lessonId}
         onOpenChange={setIsVideoUploadOpen}
         onUploadComplete={handleVideoUploaded}
         heading="Видео нового урока"

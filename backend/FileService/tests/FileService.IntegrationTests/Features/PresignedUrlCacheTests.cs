@@ -188,5 +188,10 @@ public sealed class PresignedUrlCacheTests
             string uploadId,
             CancellationToken cancellationToken) =>
             throw new NotSupportedException();
+
+        public Task<UnitResult<Error>> DeleteAsync(
+            StorageKey storageKey,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
     }
 }

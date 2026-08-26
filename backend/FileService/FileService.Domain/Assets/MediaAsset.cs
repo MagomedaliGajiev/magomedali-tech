@@ -92,6 +92,16 @@ public abstract class MediaAsset
         UpdatedAt = DateTime.UtcNow;
         return UnitResult.Success<Error>();
     }
+
+    public UnitResult<Error> MarkDeleted()
+    {
+        if (Status == MediaStatus.DELETED)
+            return UnitResult.Success<Error>();
+
+        Status = MediaStatus.DELETED;
+        UpdatedAt = DateTime.UtcNow;
+        return UnitResult.Success<Error>();
+    }
 }
 
 public enum MediaStatus

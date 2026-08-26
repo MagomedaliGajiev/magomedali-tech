@@ -220,4 +220,27 @@ public class S3Provider : IFileStorageProvider
             return S3ErrorMapper.ToError(ex);
         }
     }
+
+    public async Task<UnitResult<Error>> DeleteAsync(
+        StorageKey storageKey,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new DeleteObjectRequest
+            {
+                BucketName = storageKey.Location,
+                Key = storageKey.Value
+            };
+
+            await _s3Client.DeleteObjectAsync(request, cancellationToken);
+
+            return UnitResult.Success<Error>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting media asset {StorageKey}", storageKey);
+            return S3ErrorMapper.ToError(ex);
+        }
+    }
 }

@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { lessonsApi } from "@/app/entities/lessons/api";
+import { filesApi } from "@/app/entities/files/api";
 import {
   MediaStatus,
   type Lesson,
@@ -116,6 +117,16 @@ export function LessonCard({
 
   const handleUploadComplete = async (mediaAssetId: string) => {
     await lessonsApi.updateLessonVideo(lesson.id, mediaAssetId);
+
+    if (lesson.video?.id && lesson.video.id !== mediaAssetId) {
+      try {
+        await filesApi.deleteMediaAsset(lesson.video.id);
+      } catch (error: unknown) {
+        console.error("Не удалось удалить заменённое видео", error);
+        toast.warning("Новое видео подключено, но старое не удалось удалить");
+      }
+    }
+
     await onVideoUpdated();
     toast.success("Видео урока обновлено");
   };
@@ -244,6 +255,7 @@ export function LessonCard({
 
       <VideoUploadDialog
         open={isVideoDialogOpen}
+        ownerId={lesson.id}
         onOpenChange={setIsVideoDialogOpen}
         onUploadComplete={handleUploadComplete}
         heading={lesson.video ? "Заменить видео" : "Загрузить видео"}

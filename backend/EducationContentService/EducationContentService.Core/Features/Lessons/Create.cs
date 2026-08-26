@@ -20,6 +20,10 @@ public class CreateLessonRequestValidator : AbstractValidator<CreateLessonReques
 {
     public CreateLessonRequestValidator()
     {
+        RuleFor(r => r.Id)
+            .NotEmpty()
+            .WithError(GeneralErrors.ValueIsRequired("id"));
+
         RuleFor(r => r.Title)
             .MustBeValueObject(Title.Create);
 
@@ -91,7 +95,7 @@ public sealed class CreateHandler
         Title title = Title.Create(request.Title).Value;
         Description description = Description.Create(request.Description).Value;
 
-        var lesson = new Lesson(Guid.NewGuid(), title, description, request.VideoId);
+        var lesson = new Lesson(request.Id, title, description, request.VideoId);
 
         Result<Guid, Error> result = await _lessonsRepository.AddAsync(lesson, cancellationToken);
 

@@ -27,6 +27,7 @@ import {
 
 type VideoUploadDialogProps = {
   open: boolean;
+  ownerId: string;
   onOpenChange: (open: boolean) => void;
   onUploadComplete: (mediaAssetId: string) => void | Promise<void>;
   heading?: string;
@@ -56,7 +57,7 @@ const getUploadPhaseLabel = (phase: VideoUploadPhase): string => {
       return "Подготавливаем загрузку…";
     case "completing":
       return "Собираем части видео…";
-    case "attaching":
+    case "finalizing":
       return "Привязываем видео…";
     default:
       return "Загружаем видео…";
@@ -65,6 +66,7 @@ const getUploadPhaseLabel = (phase: VideoUploadPhase): string => {
 
 export function VideoUploadDialog({
   open,
+  ownerId,
   onOpenChange,
   onUploadComplete,
   heading = "Загрузка видео",
@@ -81,7 +83,7 @@ export function VideoUploadDialog({
     uploadFile,
     uploadPhase,
     uploadState,
-  } = useVideoUpload({ onUploadComplete });
+  } = useVideoUpload({ ownerId, onUploadComplete });
 
   const resetDialog = () => {
     reset();
@@ -194,7 +196,8 @@ export function VideoUploadDialog({
           </div>
         ) : null}
 
-        {uploadState === "error" && errorMessage ? (
+        {(uploadState === "error" || uploadState === "failed") &&
+        errorMessage ? (
           <div
             className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20"
             role="alert"
@@ -234,10 +237,14 @@ export function VideoUploadDialog({
               <DialogClose render={<Button type="button" variant="outline" />}>
                 Отмена
               </DialogClose>
-              {uploadState === "error" && selectedFile ? (
+              {uploadState === "failed" && selectedFile ? (
                 <Button type="button" onClick={handleRetry}>
                   <RotateCcw className="size-4" aria-hidden="true" />
                   Повторить
+                </Button>
+              ) : uploadState === "error" ? (
+                <Button type="button" onClick={() => inputRef.current?.click()}>
+                  Выбрать другой файл
                 </Button>
               ) : (
                 <Button type="button" onClick={() => inputRef.current?.click()}>

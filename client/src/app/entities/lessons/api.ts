@@ -1,4 +1,4 @@
-import { getBrowserStorageUrl } from "@/app/entities/videos/storage-endpoint";
+import { getBrowserStorageUrl } from "@/app/entities/files/storage-endpoint";
 import { apiClient } from "@/shared/api/axios-nstance";
 import {
   type APIEnvelope,
