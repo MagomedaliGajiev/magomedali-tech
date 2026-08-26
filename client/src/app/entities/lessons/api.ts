@@ -1,11 +1,12 @@
+import { getBrowserStorageUrl } from "@/app/entities/videos/storage-endpoint";
 import { apiClient } from "@/shared/api/axios-nstance";
 import {
   type APIEnvelope,
   toAPIError,
   unwrapAPIEnvelope,
 } from "@/shared/api/errors";
-import type { Lesson, MediaDto } from "./types";
 import type { CreateLessonRequest } from "./schema";
+import type { Lesson, MediaDto } from "./types";
 
 export type GetLessonRequest = {
   search?: string;
@@ -46,30 +47,14 @@ const parseDate = (value: string): Date => {
   return date;
 };
 
-const getBrowserMediaUrl = (value: string | null): string | null => {
-  if (!value) {
-    return null;
-  }
-
-  try {
-    const url = new URL(value);
-
-    if (url.hostname === "minio") {
-      return `/storage${url.pathname}${url.search}`;
-    }
-  } catch {
-    return value;
-  }
-
-  return value;
-};
-
 const mapLesson = (lesson: LessonDto): Lesson => ({
   ...lesson,
   video: lesson.video
     ? {
         ...lesson.video,
-        url: getBrowserMediaUrl(lesson.video.url),
+        url: lesson.video.url
+          ? getBrowserStorageUrl(lesson.video.url)
+          : null,
       }
     : undefined,
   createdAt: parseDate(lesson.createdAt),

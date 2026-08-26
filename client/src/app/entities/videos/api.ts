@@ -12,21 +12,7 @@ import type {
   StartMultipartUploadRequest,
   StartMultipartUploadResponse,
 } from "./types";
-
-const getBrowserUploadTarget = (
-  uploadUrl: string,
-): { url: string; signedHost?: string } => {
-  const url = new URL(uploadUrl);
-
-  if (url.hostname === "minio") {
-    return {
-      url: `/storage${url.pathname}${url.search}`,
-      signedHost: url.host,
-    };
-  }
-
-  return { url: uploadUrl };
-};
+import { resolveBrowserStorageTarget } from "./storage-endpoint";
 
 export const videoApi = {
   startMultipartUpload: async (
@@ -58,7 +44,7 @@ export const videoApi = {
     onProgress?: (loadedBytes: number) => void;
   }): Promise<string> => {
     try {
-      const target = getBrowserUploadTarget(uploadUrl);
+      const target = resolveBrowserStorageTarget(uploadUrl);
       const response = await axios.put(target.url, chunk, {
         headers: {
           "Content-Type": contentType,
