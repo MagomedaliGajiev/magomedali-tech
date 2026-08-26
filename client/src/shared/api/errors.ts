@@ -170,6 +170,23 @@ export const unwrapAPIEnvelope = <T>(
   return envelope.result;
 };
 
+export const ensureAPIEnvelopeSuccess = (
+  envelope: APIEnvelope<unknown>,
+): void => {
+  if (!envelope.isError) {
+    return;
+  }
+
+  if (envelope.error) {
+    throw new APIError({
+      messages: envelope.error.messages,
+      type: envelope.error.type,
+    });
+  }
+
+  throw new APIError({ fallbackMessage: DEFAULT_ERROR_MESSAGE });
+};
+
 export const getErrorMessage = (
   error: unknown,
   fallbackMessage = DEFAULT_ERROR_MESSAGE,

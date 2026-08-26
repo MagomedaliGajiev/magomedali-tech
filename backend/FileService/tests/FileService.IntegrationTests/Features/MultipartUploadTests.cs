@@ -31,9 +31,13 @@ public class MultipartUploadTests : FileServiceTestsBase
         CancellationToken cancellationToken = new CancellationTokenSource().Token;
 
         FileInfo fileInfo = new(Path.Combine(AppContext.BaseDirectory, "Resources", TEST_FILE_NAME));
+        Guid ownerId = Guid.NewGuid();
 
         // act
-        StartMultipartUploadResponse startMultipartUploadResponse = await StartMultipartUpload(fileInfo, cancellationToken);
+        StartMultipartUploadResponse startMultipartUploadResponse = await StartMultipartUpload(
+            fileInfo,
+            ownerId,
+            cancellationToken);
 
         IReadOnlyList<PartETagDto> partETags = await UploadChunks(fileInfo, startMultipartUploadResponse, cancellationToken);
 
@@ -47,8 +51,10 @@ public class MultipartUploadTests : FileServiceTestsBase
             MediaAsset? mediaAsset = await db.MediaAssets.FirstOrDefaultAsync(
                 m => m.Id == startMultipartUploadResponse.MediaAssetId, cancellationToken);
 
-            Assert.Equal(MediaStatus.UPLOADED, mediaAsset?.Status);
+            Assert.Equal(MediaStatus.READY, mediaAsset?.Status);
             Assert.NotNull(mediaAsset);
+            Assert.Equal("lesson", mediaAsset.Owner.Context);
+            Assert.Equal(ownerId, mediaAsset.Owner.EntityId);
 
             IAmazonS3 amazonS3client = _factory.Services.GetRequiredService<IAmazonS3>();
 
@@ -62,13 +68,107 @@ public class MultipartUploadTests : FileServiceTestsBase
         });
     }
 
-    private async Task<StartMultipartUploadResponse> StartMultipartUpload(FileInfo fileInfo, CancellationToken cancellationToken)
+    [Fact]
+    public async Task DeleteMediaAsset_ActiveUpload_AbortsMultipartAndMarksAssetDeleted()
+    {
+        CancellationToken cancellationToken = new CancellationTokenSource().Token;
+        FileInfo fileInfo = new(Path.Combine(AppContext.BaseDirectory, "Resources", TEST_FILE_NAME));
+        StartMultipartUploadResponse upload = await StartMultipartUpload(
+            fileInfo,
+            Guid.NewGuid(),
+            cancellationToken);
+        string bucketName = string.Empty;
+        string storageKey = string.Empty;
+
+        await ExecuteInDb(async db =>
+        {
+            MediaAsset mediaAsset = await db.MediaAssets.SingleAsync(
+                asset => asset.Id == upload.MediaAssetId,
+                cancellationToken);
+            bucketName = mediaAsset.Key.Location;
+            storageKey = mediaAsset.Key.Value;
+        });
+
+        IAmazonS3 amazonS3Client = _factory.Services.GetRequiredService<IAmazonS3>();
+        var listPartsRequest = new ListPartsRequest
+        {
+            BucketName = bucketName,
+            Key = storageKey,
+            UploadId = upload.UploadId
+        };
+        await amazonS3Client.ListPartsAsync(listPartsRequest, cancellationToken);
+
+        HttpResponseMessage deleteResponse = await AppHttpClient.DeleteAsync(
+            $"/api/files/{upload.MediaAssetId}?uploadId={Uri.EscapeDataString(upload.UploadId)}",
+            cancellationToken);
+        Result<string, Error> deleteResult = await deleteResponse.HandleResponseAsync<string>(cancellationToken);
+
+        Assert.True(deleteResult.IsSuccess);
+        Assert.Equal(upload.MediaAssetId.ToString(), deleteResult.Value);
+
+        await ExecuteInDb(async db =>
+        {
+            MediaAsset mediaAsset = await db.MediaAssets.SingleAsync(
+                asset => asset.Id == upload.MediaAssetId,
+                cancellationToken);
+            Assert.Equal(MediaStatus.DELETED, mediaAsset.Status);
+        });
+
+        AmazonS3Exception exception = await Assert.ThrowsAsync<AmazonS3Exception>(() =>
+            amazonS3Client.ListPartsAsync(listPartsRequest, cancellationToken));
+        Assert.Equal("NoSuchUpload", exception.ErrorCode);
+    }
+
+    [Fact]
+    public async Task DeleteMediaAsset_RemovesObjectAndMarksAssetDeleted()
+    {
+        CancellationToken cancellationToken = new CancellationTokenSource().Token;
+        FileInfo fileInfo = new(Path.Combine(AppContext.BaseDirectory, "Resources", TEST_FILE_NAME));
+        StartMultipartUploadResponse upload = await StartMultipartUpload(
+            fileInfo,
+            Guid.NewGuid(),
+            cancellationToken);
+        IReadOnlyList<PartETagDto> partETags = await UploadChunks(fileInfo, upload, cancellationToken);
+        UnitResult<Error> completeResult = await CompletMultipartUpload(upload, partETags, cancellationToken);
+        Assert.True(completeResult.IsSuccess);
+
+        HttpResponseMessage deleteResponse = await AppHttpClient.DeleteAsync(
+            $"/api/files/{upload.MediaAssetId}",
+            cancellationToken);
+        Result<string, Error> deleteResult = await deleteResponse.HandleResponseAsync<string>(cancellationToken);
+
+        Assert.True(deleteResult.IsSuccess);
+        Assert.Equal(upload.MediaAssetId.ToString(), deleteResult.Value);
+
+        await ExecuteInDb(async db =>
+        {
+            MediaAsset mediaAsset = await db.MediaAssets.SingleAsync(
+                asset => asset.Id == upload.MediaAssetId,
+                cancellationToken);
+            Assert.Equal(MediaStatus.DELETED, mediaAsset.Status);
+
+            IAmazonS3 amazonS3Client = _factory.Services.GetRequiredService<IAmazonS3>();
+            AmazonS3Exception exception = await Assert.ThrowsAnyAsync<AmazonS3Exception>(() =>
+                amazonS3Client.GetObjectAsync(
+                    mediaAsset.Key.Location,
+                    mediaAsset.Key.Value,
+                    cancellationToken));
+            Assert.Equal(System.Net.HttpStatusCode.NotFound, exception.StatusCode);
+        });
+    }
+
+    private async Task<StartMultipartUploadResponse> StartMultipartUpload(
+        FileInfo fileInfo,
+        Guid ownerId,
+        CancellationToken cancellationToken)
     {
         var request = new StartMultipartUploadRequest(
             fileInfo.Name,
             "video",
             "video/mp4",
-            fileInfo.Length);
+            fileInfo.Length,
+            "lesson",
+            ownerId);
 
         HttpResponseMessage startMultipartResponse = await AppHttpClient.PostAsJsonAsync(
             "/api/files/multipart-upload",

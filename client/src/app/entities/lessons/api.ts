@@ -1,11 +1,12 @@
+import { getBrowserStorageUrl } from "@/app/entities/files/storage-endpoint";
 import { apiClient } from "@/shared/api/axios-nstance";
 import {
   type APIEnvelope,
   toAPIError,
   unwrapAPIEnvelope,
 } from "@/shared/api/errors";
-import type { Lesson, MediaDto } from "./types";
 import type { CreateLessonRequest } from "./schema";
+import type { Lesson, MediaDto } from "./types";
 
 export type GetLessonRequest = {
   search?: string;
@@ -48,7 +49,14 @@ const parseDate = (value: string): Date => {
 
 const mapLesson = (lesson: LessonDto): Lesson => ({
   ...lesson,
-  video: lesson.video ?? undefined,
+  video: lesson.video
+    ? {
+        ...lesson.video,
+        url: lesson.video.url
+          ? getBrowserStorageUrl(lesson.video.url)
+          : null,
+      }
+    : undefined,
   createdAt: parseDate(lesson.createdAt),
   updatedAt: parseDate(lesson.updatedAt),
 });
@@ -90,6 +98,34 @@ export const lessonsApi = {
       return unwrapAPIEnvelope(response.data);
     } catch (error: unknown) {
       throw toAPIError(error, "Не удалось создать урок");
+    }
+  },
+
+  deleteLesson: async (lessonId: string): Promise<string> => {
+    try {
+      const response = await apiClient.delete<APIEnvelope<string>>(
+        `/lessons/${lessonId}`,
+      );
+
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось удалить урок");
+    }
+  },
+
+  updateLessonVideo: async (
+    lessonId: string,
+    videoId: string,
+  ): Promise<string> => {
+    try {
+      const response = await apiClient.patch<APIEnvelope<string>>(
+        `/lessons/${lessonId}/video`,
+        { videoId },
+      );
+
+      return unwrapAPIEnvelope(response.data);
+    } catch (error: unknown) {
+      throw toAPIError(error, "Не удалось привязать видео к уроку");
     }
   },
 };

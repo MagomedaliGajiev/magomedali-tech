@@ -33,4 +33,10 @@
       <ProjectReference Include="..\EducationContentService.Infrastructure.Postgres\EducationContentService.Infrastructure.Postgres.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
+    </ItemGroup>
+
 </Project>

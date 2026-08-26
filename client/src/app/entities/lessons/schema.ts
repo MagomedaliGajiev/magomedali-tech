@@ -3,6 +3,13 @@ import { z } from "zod";
 const EMPTY_UUID = "00000000-0000-0000-0000-000000000000";
 
 export const createLessonSchema = z.object({
+  id: z
+    .string()
+    .trim()
+    .pipe(z.guid("Не удалось подготовить ID урока"))
+    .refine((id) => id !== EMPTY_UUID, {
+      message: "ID урока не может быть пустым UUID",
+    }),
   title: z
     .string()
     .trim()

@@ -59,8 +59,7 @@ public sealed class StartMultipartUploadHandler
         if (assetType.IsFailure)
             return assetType.Error;
 
-        // TODO: Replace the temporary owner with the actual upload context.
-        Result<MediaOwner, Error> owner = MediaOwner.ForUser(Guid.NewGuid());
+        Result<MediaOwner, Error> owner = MediaOwner.Create(request.OwnerType, request.OwnerId);
         if (owner.IsFailure)
             return owner.Error;
 

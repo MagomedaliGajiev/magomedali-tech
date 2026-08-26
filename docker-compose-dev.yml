@@ -1,4 +1,26 @@
 services:
+  frontend:
+    container_name: frontend-magomedali-tech
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./client/.env
+    environment:
+      - API_INTERNAL_URL=http://education-content-service:8001
+      - FILE_API_INTERNAL_URL=http://file-service:8002
+      - STORAGE_INTERNAL_URL=http://minio:9000
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      education-content-service:
+        condition: service_started
+    restart: always
+
   education-content-service:
     container_name: education-content-service
     build:
@@ -7,15 +29,76 @@ services:
       secrets:
         - gh_token
     ports:
-      - "9001:9001"
+      - "8001:8001"
     environment:
       - ASPNETCORE_ENVIRONMENT=Docker
-      - ASPNETCORE_URLS=http://+:9001
-      - FileServiceOptions__Url=http://host.docker.internal:8002
+      - ASPNETCORE_URLS=http://+:8001
+      - FileServiceOptions__Url=http://file-service:8002
     env_file:
       - path: education.service.env
         required: false
+    depends_on:
+      education-content-migrations:
+        condition: service_completed_successfully
+      file-service:
+        condition: service_started
     restart: always
+
+  education-content-migrations:
+    container_name: education-content-migrations
+    build:
+      context: ./backend
+      dockerfile: EducationContentService/Dockerfile
+      secrets:
+        - gh_token
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+    entrypoint:
+      - ./efbundle
+      - --connection
+      - Host=postgres;Port=5432;Database=education_content;Username=postgres;Password=postgres
+
+  file-service:
+    container_name: file-service
+    build:
+      context: ./backend
+      dockerfile: FileService/Dockerfile
+      secrets:
+        - gh_token
+    ports:
+      - "8002:8002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Docker
+      - ASPNETCORE_URLS=http://+:8002
+    depends_on:
+      file-service-db-init:
+        condition: service_completed_successfully
+      minio:
+        condition: service_started
+      redis:
+        condition: service_started
+      seq:
+        condition: service_started
+    restart: always
+
+  file-service-db-init:
+    image: postgres
+    environment:
+      PGPASSWORD: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - -c
+      - >
+        psql -h postgres -U postgres -d postgres -tAc
+        "SELECT 1 FROM pg_database WHERE datname = 'file_service_db'" | grep -q 1 ||
+        psql -h postgres -U postgres -d postgres -c "CREATE DATABASE file_service_db"
+    restart: "no"
+
   seq:
     container_name: seq-magomedali-tech
     image: datalust/seq:latest
@@ -35,6 +118,8 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "5435:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -51,6 +136,7 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
     command: server /data --console-address ":9002"
     volumes:
       - minio-data:/data
@@ -65,7 +151,20 @@ services:
       - redis_data:/data
     restart: always
 
+  nginx:
+    container_name: nginx-magomedali-tech
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - education-content-service
+      - file-service
+    restart: always
+
 volumes:
+  postgres-data:
   minio-data:
   redis_data:
 

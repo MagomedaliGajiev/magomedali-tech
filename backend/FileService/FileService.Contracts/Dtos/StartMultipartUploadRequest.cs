@@ -4,4 +4,6 @@ public record StartMultipartUploadRequest(
     string FileName,
     string AssetType,
     string ContentType,
-    long Size);
+    long Size,
+    string OwnerType,
+    Guid OwnerId);
