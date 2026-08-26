@@ -74,6 +74,7 @@ export function VideoUploadDialog({
 }: VideoUploadDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const {
+    cancel,
     errorMessage,
     isUploading,
     progress,
@@ -84,9 +85,14 @@ export function VideoUploadDialog({
     uploadPhase,
     uploadState,
   } = useVideoUpload({ ownerId, onUploadComplete });
+  const isFinalizing = isUploading && uploadPhase === "finalizing";
 
-  const resetDialog = () => {
-    reset();
+  const resetDialog = (shouldCancel = false) => {
+    if (shouldCancel) {
+      cancel();
+    } else {
+      reset();
+    }
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -94,12 +100,12 @@ export function VideoUploadDialog({
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && uploadState === "uploading") {
+    if (!nextOpen && isFinalizing) {
       return;
     }
 
     if (!nextOpen) {
-      resetDialog();
+      resetDialog(isUploading);
     }
 
     onOpenChange(nextOpen);
@@ -223,10 +229,18 @@ export function VideoUploadDialog({
         ) : null}
 
         <DialogFooter>
-          {isUploading ? (
+          {isFinalizing ? (
             <Button type="button" disabled>
               <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              Загрузка…
+              Завершение…
+            </Button>
+          ) : isUploading ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleOpenChange(false)}
+            >
+              Отменить загрузку
             </Button>
           ) : uploadState === "completed" ? (
             <DialogClose render={<Button type="button" />}>

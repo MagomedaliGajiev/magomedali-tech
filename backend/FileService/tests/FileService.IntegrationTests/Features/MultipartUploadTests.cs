@@ -69,6 +69,57 @@ public class MultipartUploadTests : FileServiceTestsBase
     }
 
     [Fact]
+    public async Task DeleteMediaAsset_ActiveUpload_AbortsMultipartAndMarksAssetDeleted()
+    {
+        CancellationToken cancellationToken = new CancellationTokenSource().Token;
+        FileInfo fileInfo = new(Path.Combine(AppContext.BaseDirectory, "Resources", TEST_FILE_NAME));
+        StartMultipartUploadResponse upload = await StartMultipartUpload(
+            fileInfo,
+            Guid.NewGuid(),
+            cancellationToken);
+        string bucketName = string.Empty;
+        string storageKey = string.Empty;
+
+        await ExecuteInDb(async db =>
+        {
+            MediaAsset mediaAsset = await db.MediaAssets.SingleAsync(
+                asset => asset.Id == upload.MediaAssetId,
+                cancellationToken);
+            bucketName = mediaAsset.Key.Location;
+            storageKey = mediaAsset.Key.Value;
+        });
+
+        IAmazonS3 amazonS3Client = _factory.Services.GetRequiredService<IAmazonS3>();
+        var listPartsRequest = new ListPartsRequest
+        {
+            BucketName = bucketName,
+            Key = storageKey,
+            UploadId = upload.UploadId
+        };
+        await amazonS3Client.ListPartsAsync(listPartsRequest, cancellationToken);
+
+        HttpResponseMessage deleteResponse = await AppHttpClient.DeleteAsync(
+            $"/api/files/{upload.MediaAssetId}?uploadId={Uri.EscapeDataString(upload.UploadId)}",
+            cancellationToken);
+        Result<string, Error> deleteResult = await deleteResponse.HandleResponseAsync<string>(cancellationToken);
+
+        Assert.True(deleteResult.IsSuccess);
+        Assert.Equal(upload.MediaAssetId.ToString(), deleteResult.Value);
+
+        await ExecuteInDb(async db =>
+        {
+            MediaAsset mediaAsset = await db.MediaAssets.SingleAsync(
+                asset => asset.Id == upload.MediaAssetId,
+                cancellationToken);
+            Assert.Equal(MediaStatus.DELETED, mediaAsset.Status);
+        });
+
+        AmazonS3Exception exception = await Assert.ThrowsAsync<AmazonS3Exception>(() =>
+            amazonS3Client.ListPartsAsync(listPartsRequest, cancellationToken));
+        Assert.Equal("NoSuchUpload", exception.ErrorCode);
+    }
+
+    [Fact]
     public async Task DeleteMediaAsset_RemovesObjectAndMarksAssetDeleted()
     {
         CancellationToken cancellationToken = new CancellationTokenSource().Token;

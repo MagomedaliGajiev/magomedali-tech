@@ -72,19 +72,31 @@ export function useFileUpload({
     () => () => {
       operationIdRef.current += 1;
       abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+
+      const activeUpload = activeUploadRef.current;
+      activeUploadRef.current = null;
+      if (activeUpload) {
+        void cleanupUpload(activeUpload);
+      }
     },
     [],
   );
 
-  const reset = useCallback(() => {
+  const cancel = useCallback(() => {
     operationIdRef.current += 1;
-    abortControllerRef.current?.abort();
+    const abortController = abortControllerRef.current;
     abortControllerRef.current = null;
+    abortController?.abort();
 
     const activeUpload = activeUploadRef.current;
     activeUploadRef.current = null;
     if (activeUpload) {
       void cleanupUpload(activeUpload);
+    }
+
+    if (abortController || activeUpload) {
+      console.info("Загрузка файла отменена пользователем");
     }
 
     setSelectedFile(null);
@@ -94,6 +106,8 @@ export function useFileUpload({
     setErrorMessage(null);
     setCompletedMediaAssetId(null);
   }, []);
+
+  const reset = cancel;
 
   const finalizeUpload = useCallback(
     async (mediaAssetId: string, operationId: number) => {
@@ -120,6 +134,7 @@ export function useFileUpload({
           return;
         }
 
+        console.error("Ошибка завершения загрузки файла", error);
         setUploadState("failed");
         setErrorMessage(
           getErrorMessage(
@@ -169,6 +184,7 @@ export function useFileUpload({
       setCompletedMediaAssetId(null);
 
       let startedUpload: ActiveUpload | null = null;
+      let isMultipartCompleted = false;
 
       try {
         const upload = await filesApi.startMultipartUpload(
@@ -186,7 +202,19 @@ export function useFileUpload({
           mediaAssetId: upload.mediaAssetId,
           uploadId: upload.uploadId,
         };
+
+        if (
+          operationIdRef.current !== operationId ||
+          abortController.signal.aborted
+        ) {
+          void cleanupUpload(startedUpload);
+          return;
+        }
+
         activeUploadRef.current = startedUpload;
+        console.info("Multipart-загрузка файла начата", {
+          mediaAssetId: upload.mediaAssetId,
+        });
 
         const chunks = [...upload.chunkUploadUrls].sort(
           (left, right) => left.partNumber - right.partNumber,
@@ -269,15 +297,19 @@ export function useFileUpload({
           abortController.signal,
         );
 
+        isMultipartCompleted = true;
         setCompletedMediaAssetId(upload.mediaAssetId);
         await finalizeUpload(upload.mediaAssetId, operationId);
+        console.info("Multipart-загрузка файла завершена", {
+          mediaAssetId: upload.mediaAssetId,
+        });
       } catch (error: unknown) {
-        if (startedUpload && completedMediaAssetId !== startedUpload.mediaAssetId) {
-          if (
-            activeUploadRef.current?.mediaAssetId === startedUpload.mediaAssetId
-          ) {
-            activeUploadRef.current = null;
-          }
+        if (
+          startedUpload &&
+          !isMultipartCompleted &&
+          activeUploadRef.current?.mediaAssetId === startedUpload.mediaAssetId
+        ) {
+          activeUploadRef.current = null;
           void cleanupUpload(startedUpload);
         }
 
@@ -285,6 +317,7 @@ export function useFileUpload({
           return;
         }
 
+        console.error("Ошибка multipart-загрузки файла", error);
         setUploadState("failed");
         setErrorMessage(getErrorMessage(error, "Не удалось загрузить файл"));
       } finally {
@@ -295,7 +328,6 @@ export function useFileUpload({
     },
     [
       assetType,
-      completedMediaAssetId,
       finalizeUpload,
       maxParallelChunks,
       ownerId,
@@ -319,6 +351,7 @@ export function useFileUpload({
   }, [completedMediaAssetId, finalizeUpload, selectedFile, uploadFile]);
 
   return {
+    cancel,
     errorMessage,
     isUploading: uploadState === "uploading",
     progress,
