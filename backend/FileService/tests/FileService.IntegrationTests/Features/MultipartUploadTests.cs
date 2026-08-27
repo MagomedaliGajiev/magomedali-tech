@@ -46,6 +46,12 @@ public class MultipartUploadTests : FileServiceTestsBase
         // assert
         Assert.True(result.IsSuccess);
 
+        Result<CheckMediaAssetExistsResponse, Error> existsResult = await CheckMediaAssetExists(
+            startMultipartUploadResponse.MediaAssetId,
+            cancellationToken);
+        Assert.True(existsResult.IsSuccess);
+        Assert.True(existsResult.Value.Exists);
+
         await ExecuteInDb(async db =>
         {
             MediaAsset? mediaAsset = await db.MediaAssets.FirstOrDefaultAsync(
@@ -105,6 +111,12 @@ public class MultipartUploadTests : FileServiceTestsBase
 
         Assert.True(deleteResult.IsSuccess);
         Assert.Equal(upload.MediaAssetId.ToString(), deleteResult.Value);
+
+        Result<CheckMediaAssetExistsResponse, Error> existsResult = await CheckMediaAssetExists(
+            upload.MediaAssetId,
+            cancellationToken);
+        Assert.True(existsResult.IsSuccess);
+        Assert.False(existsResult.Value.Exists);
 
         await ExecuteInDb(async db =>
         {
@@ -192,6 +204,17 @@ public class MultipartUploadTests : FileServiceTestsBase
         });
 
         return startMultipartResult.Value;
+    }
+
+    private async Task<Result<CheckMediaAssetExistsResponse, Error>> CheckMediaAssetExists(
+        Guid mediaAssetId,
+        CancellationToken cancellationToken)
+    {
+        HttpResponseMessage response = await AppHttpClient.GetAsync(
+            $"/api/files/{mediaAssetId}/exists",
+            cancellationToken);
+
+        return await response.HandleResponseAsync<CheckMediaAssetExistsResponse>(cancellationToken);
     }
 
     private async Task<IReadOnlyList<PartETagDto>> UploadChunks(

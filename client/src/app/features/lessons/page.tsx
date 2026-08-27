@@ -88,6 +88,11 @@ export default function LessonsPage() {
   const readyLessons = lessons.filter(
     (lesson) => lesson.video?.status === MediaStatus.READY,
   ).length;
+  const processingLessons = lessons.filter(
+    (lesson) =>
+      lesson.video?.status === MediaStatus.UPLOADING ||
+      lesson.video?.status === MediaStatus.UPLOADED,
+  ).length;
 
   const handleLessonCreated = async () => {
     setIsCreateSheetOpen(false);
@@ -130,7 +135,8 @@ export default function LessonsPage() {
               Новый урок
             </SheetTitle>
             <SheetDescription>
-              Заполните информацию и загрузите видео для нового урока.
+              Заполните информацию. Видео можно загрузить сейчас или добавить
+              позже.
             </SheetDescription>
           </SheetHeader>
 
@@ -161,7 +167,7 @@ export default function LessonsPage() {
             В подготовке среди загруженных
           </p>
           <p className="mt-2 text-2xl font-bold text-amber-300">
-            {lessons.length - readyLessons}
+            {processingLessons}
           </p>
         </div>
       </div>

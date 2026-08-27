@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using CSharpFunctionalExtensions;
 using EducationContentService.Contracts.Lessons;
+using EducationContentService.Core.Database;
 using EducationContentService.Core.Features.Lessons;
 using EducationContentService.Domain.Lessons;
 using EducationContentService.Domain.ValueObjects;
@@ -70,6 +71,33 @@ public class UpdateVideoHandlerTests
         Assert.False(repository.WasUpdated);
     }
 
+    [Fact]
+    public async Task Handle_ClearsLessonVideo_WithoutRequestingFileService()
+    {
+        Lesson lesson = CreateLesson();
+        var repository = new RecordingLessonsRepository(lesson);
+        UpdateVideoHandler sut = CreateHandler(repository, []);
+
+        Result<Guid, Error> result = await sut.Handle(
+            lesson.Id,
+            new UpdateLessonVideoRequest(null),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(lesson.VideoId);
+        Assert.True(repository.WasUpdated);
+    }
+
+    [Fact]
+    public async Task Validator_RejectsEmptyVideoId()
+    {
+        var validator = new UpdateLessonVideoRequestValidator();
+
+        var result = await validator.ValidateAsync(new UpdateLessonVideoRequest(Guid.Empty));
+
+        Assert.False(result.IsValid);
+    }
+
     private static Lesson CreateLesson() => new(
         Guid.NewGuid(),
         Title.Create("Lesson").Value,
@@ -82,6 +110,7 @@ public class UpdateVideoHandlerTests
     {
         return new UpdateVideoHandler(
             NullLogger<UpdateVideoHandler>.Instance,
+            repository,
             repository,
             new StubFileCommunicationService(mediaAssets),
             new UpdateLessonVideoRequestValidator());
@@ -105,7 +134,7 @@ public class UpdateVideoHandlerTests
         }
     }
 
-    private sealed class RecordingLessonsRepository : ILessonsRepository
+    private sealed class RecordingLessonsRepository : ILessonsRepository, ITransactionManager
     {
         private readonly Lesson _lesson;
 
@@ -123,11 +152,7 @@ public class UpdateVideoHandlerTests
         public Task<Result<Guid, Error>> UpdateAsync(
             Lesson lesson,
             CancellationToken cancellationToken = default)
-        {
-            WasUpdated = true;
-            Result<Guid, Error> result = lesson.Id;
-            return Task.FromResult(result);
-        }
+            => throw new NotSupportedException();
 
         public Task<Result<Lesson, Error>> GetBy(
             Expression<Func<Lesson, bool>> predicate,
@@ -135,6 +160,12 @@ public class UpdateVideoHandlerTests
         {
             Result<Lesson, Error> result = _lesson;
             return Task.FromResult(result);
+        }
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            WasUpdated = true;
+            return Task.FromResult(1);
         }
     }
 }

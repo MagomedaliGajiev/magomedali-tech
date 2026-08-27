@@ -10,6 +10,25 @@ namespace FileService.IntegrationTests.HttpCommunication;
 public class FileHttpClientTests
 {
     [Fact]
+    public async Task CheckMediaAssetExists_SendsGetRequestWithMediaAssetId()
+    {
+        var messageHandler = new RecordingMessageHandler();
+        using var httpClient = new HttpClient(messageHandler)
+        {
+            BaseAddress = new Uri("http://file-service/"),
+        };
+        var sut = new FileHttpClient(httpClient, NullLogger<FileHttpClient>.Instance);
+        Guid mediaAssetId = Guid.NewGuid();
+
+        var result = await sut.CheckMediaAssetExists(mediaAssetId, CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.Exists);
+        Assert.Equal(HttpMethod.Get, messageHandler.Method);
+        Assert.Equal($"/api/files/{mediaAssetId}/exists", messageHandler.RequestUri?.AbsolutePath);
+    }
+
+    [Fact]
     public async Task GetMediaAssets_SendsPostRequestWithMediaAssetIds()
     {
         var messageHandler = new RecordingMessageHandler();
@@ -44,6 +63,17 @@ public class FileHttpClientTests
         {
             Method = request.Method;
             RequestUri = request.RequestUri;
+
+            if (request.Method == HttpMethod.Get)
+            {
+                var existsResponse = new CheckMediaAssetExistsResponse(true);
+
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = JsonContent.Create(Envelope<CheckMediaAssetExistsResponse>.Ok(existsResponse)),
+                };
+            }
+
             Request = await request.Content!.ReadFromJsonAsync<GetMediaAssetsRequest>(cancellationToken);
 
             var response = new GetMediaAssetsResponse([]);

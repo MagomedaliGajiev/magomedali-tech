@@ -1,7 +1,9 @@
 using Core.Validation;
 using CSharpFunctionalExtensions;
 using EducationContentService.Contracts.Lessons;
+using EducationContentService.Core.Database;
 using EducationContentService.Domain.Lessons;
+using EducationContentService.Domain.Shared;
 using FileService.Contracts;
 using FileService.Contracts.Dtos;
 using FluentValidation;
@@ -10,6 +12,7 @@ using Framework.Endpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shared.SharedKernel;
 
@@ -20,8 +23,8 @@ public class UpdateLessonVideoRequestValidator : AbstractValidator<UpdateLessonV
     public UpdateLessonVideoRequestValidator()
     {
         RuleFor(r => r.VideoId)
-            .NotEmpty()
-            .WithError(GeneralErrors.ValueIsRequired("videoId"));
+            .Must(videoId => !videoId.HasValue || videoId.Value != Guid.Empty)
+            .WithError(GeneralErrors.ValueIsInvalid("videoId"));
     }
 }
 
@@ -42,17 +45,20 @@ public sealed class UpdateVideoHandler
     private const string VIDEO_ASSET_TYPE = "video";
 
     private readonly ILogger<UpdateVideoHandler> _logger;
+    private readonly ITransactionManager _transactionManager;
     private readonly ILessonsRepository _lessonsRepository;
     private readonly IFileCommunicationService _fileCommunicationService;
     private readonly IValidator<UpdateLessonVideoRequest> _validator;
 
     public UpdateVideoHandler(
         ILogger<UpdateVideoHandler> logger,
+        ITransactionManager transactionManager,
         ILessonsRepository lessonsRepository,
         IFileCommunicationService fileCommunicationService,
         IValidator<UpdateLessonVideoRequest> validator)
     {
         _logger = logger;
+        _transactionManager = transactionManager;
         _lessonsRepository = lessonsRepository;
         _fileCommunicationService = fileCommunicationService;
         _validator = validator;
@@ -73,26 +79,40 @@ public sealed class UpdateVideoHandler
         if (lessonResult.IsFailure)
             return lessonResult.Error;
 
-        Result<GetMediaAssetsResponse, Error> mediaAssetsResult = await _fileCommunicationService
-            .GetMediaAssets(new GetMediaAssetsRequest([request.VideoId]), cancellationToken);
-        if (mediaAssetsResult.IsFailure)
-            return mediaAssetsResult.Error;
+        if (request.VideoId.HasValue)
+        {
+            Result<GetMediaAssetsResponse, Error> mediaAssetsResult = await _fileCommunicationService
+                .GetMediaAssets(new GetMediaAssetsRequest([request.VideoId.Value]), cancellationToken);
+            if (mediaAssetsResult.IsFailure)
+                return mediaAssetsResult.Error;
 
-        GetMediaAssetsDto? video = mediaAssetsResult.Value.MediaAssets
-            .FirstOrDefault(mediaAsset => mediaAsset.Id == request.VideoId);
+            GetMediaAssetsDto? video = mediaAssetsResult.Value.MediaAssets
+                .FirstOrDefault(mediaAsset => mediaAsset.Id == request.VideoId.Value);
 
-        if (video is null)
-            return GeneralErrors.NotFound(request.VideoId, "video");
+            if (video is null)
+                return GeneralErrors.NotFound(request.VideoId.Value, "video");
 
-        if (!string.Equals(video.AssetType, VIDEO_ASSET_TYPE, StringComparison.OrdinalIgnoreCase))
-            return GeneralErrors.ValueIsInvalid("videoId");
+            if (!string.Equals(video.AssetType, VIDEO_ASSET_TYPE, StringComparison.OrdinalIgnoreCase))
+                return GeneralErrors.ValueIsInvalid("videoId");
+        }
 
         Lesson lesson = lessonResult.Value;
-        lesson.UpdateVideo(request.VideoId);
+        lesson.UpdateVideoId(request.VideoId);
 
-        Result<Guid, Error> updateResult = await _lessonsRepository.UpdateAsync(lesson, cancellationToken);
-        if (updateResult.IsFailure)
-            return updateResult.Error;
+        try
+        {
+            await _transactionManager.SaveChangesAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Operation was cancelled while updating video for lesson {LessonId}", lessonId);
+            throw;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database update error while updating video for lesson {LessonId}", lessonId);
+            return EducationErrors.DatabaseError();
+        }
 
         _logger.LogInformation("Updated video for lesson {LessonId} to media asset {MediaAssetId}", lessonId, request.VideoId);
 

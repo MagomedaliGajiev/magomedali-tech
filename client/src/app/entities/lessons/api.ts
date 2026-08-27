@@ -92,7 +92,11 @@ export const lessonsApi = {
     try {
       const response = await apiClient.post<APIEnvelope<string>>(
         "/lessons",
-        request,
+        {
+          ...request,
+          id: request.id || crypto.randomUUID(),
+          videoId: request.videoId || null,
+        },
       );
 
       return unwrapAPIEnvelope(response.data);
@@ -115,7 +119,7 @@ export const lessonsApi = {
 
   updateLessonVideo: async (
     lessonId: string,
-    videoId: string,
+    videoId: string | null,
   ): Promise<string> => {
     try {
       const response = await apiClient.patch<APIEnvelope<string>>(

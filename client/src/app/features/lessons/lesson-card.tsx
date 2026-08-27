@@ -11,11 +11,11 @@ import {
   Trash2,
   UploadCloud,
   Video,
+  VideoOff,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { lessonsApi } from "@/app/entities/lessons/api";
 import { filesApi } from "@/app/entities/files/api";
 import {
   MediaStatus,
@@ -23,6 +23,7 @@ import {
   type MediaStatus as MediaStatusType,
 } from "@/app/entities/lessons/types";
 import { useDeleteLesson } from "@/app/features/lessons/model/use-delete-lesson";
+import { useUpdateLessonVideo } from "@/app/features/lessons/model/use-update-lesson-video";
 import { VideoUploadDialog } from "@/app/features/videos/video-upload-dialog";
 import { getErrorMessage } from "@/shared/api/errors";
 import { Button, buttonVariants } from "@/shared/components/ui/button";
@@ -105,18 +106,25 @@ export function LessonCard({
 }: LessonCardProps) {
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRemoveVideoDialogOpen, setIsRemoveVideoDialogOpen] = useState(false);
   const deleteLessonMutation = useDeleteLesson({
     onSuccess: async () => {
       setIsDeleteDialogOpen(false);
       await onLessonDeleted();
     },
   });
+  const updateVideoMutation = useUpdateLessonVideo({
+    onSuccess: onVideoUpdated,
+  });
   const mediaStatus = lesson.video?.status;
   const status = mediaStatus ? statusMeta[mediaStatus] : null;
   const StatusIcon = status?.icon;
 
   const handleUploadComplete = async (mediaAssetId: string) => {
-    await lessonsApi.updateLessonVideo(lesson.id, mediaAssetId);
+    await updateVideoMutation.mutateAsync({
+      lessonId: lesson.id,
+      videoId: mediaAssetId,
+    });
 
     if (lesson.video?.id && lesson.video.id !== mediaAssetId) {
       try {
@@ -127,8 +135,38 @@ export function LessonCard({
       }
     }
 
-    await onVideoUpdated();
-    toast.success("Видео урока обновлено");
+  };
+
+  const handleRemoveVideoDialogChange = (open: boolean) => {
+    if (updateVideoMutation.isPending) {
+      return;
+    }
+
+    setIsRemoveVideoDialogOpen(open);
+  };
+
+  const handleRemoveVideo = async () => {
+    const videoId = lesson.video?.id;
+    if (!videoId) {
+      return;
+    }
+
+    try {
+      await updateVideoMutation.mutateAsync({
+        lessonId: lesson.id,
+        videoId: null,
+      });
+      setIsRemoveVideoDialogOpen(false);
+
+      try {
+        await filesApi.deleteMediaAsset(videoId);
+      } catch (error: unknown) {
+        console.error("Не удалось удалить отвязанное видео", error);
+        toast.warning("Видео отвязано, но файл не удалось удалить");
+      }
+    } catch {
+      // Ошибка показана через toast в mutation hook.
+    }
   };
 
   const handleDeleteDialogChange = (open: boolean) => {
@@ -231,16 +269,31 @@ export function LessonCard({
                     variant="destructive"
                     size="sm"
                     className="shrink-0"
+                    disabled={updateVideoMutation.isPending}
                     onClick={() => setIsDeleteDialogOpen(true)}
                   >
                     <Trash2 className="size-4" aria-hidden="true" />
                     Удалить
                   </Button>
+                  {lesson.video ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="shrink-0"
+                      disabled={updateVideoMutation.isPending}
+                      onClick={() => setIsRemoveVideoDialogOpen(true)}
+                    >
+                      <VideoOff className="size-4" aria-hidden="true" />
+                      Убрать видео
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     className="shrink-0"
+                    disabled={updateVideoMutation.isPending}
                     onClick={() => setIsVideoDialogOpen(true)}
                   >
                     <UploadCloud className="size-4" aria-hidden="true" />
@@ -311,6 +364,51 @@ export function LessonCard({
                 <Trash2 className="size-4" aria-hidden="true" />
               )}
               {deleteLessonMutation.isPending ? "Удаление…" : "Удалить урок"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isRemoveVideoDialogOpen}
+        onOpenChange={handleRemoveVideoDialogChange}
+      >
+        <DialogContent showCloseButton={!updateVideoMutation.isPending}>
+          <DialogHeader>
+            <span className="mb-2 flex size-11 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+              <VideoOff className="size-5" aria-hidden="true" />
+            </span>
+            <DialogTitle>Убрать видео из урока?</DialogTitle>
+            <DialogDescription>
+              Видео будет отвязано от урока «{lesson.title}», а файл — удалён
+              из хранилища. Сам урок останется доступен.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={updateVideoMutation.isPending}
+              onClick={() => handleRemoveVideoDialogChange(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={updateVideoMutation.isPending}
+              onClick={() => void handleRemoveVideo()}
+            >
+              {updateVideoMutation.isPending ? (
+                <LoaderCircle
+                  className="size-4 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <VideoOff className="size-4" aria-hidden="true" />
+              )}
+              {updateVideoMutation.isPending ? "Удаление…" : "Убрать видео"}
             </Button>
           </DialogFooter>
         </DialogContent>
