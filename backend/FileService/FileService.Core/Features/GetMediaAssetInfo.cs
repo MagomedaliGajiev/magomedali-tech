@@ -49,7 +49,7 @@ public sealed class GetMediaAsset : IEndpoint
 
             string? url = null;
 
-            if (mediaAsset.Status == MediaStatus.READY)
+            if (mediaAsset.Status == MediaStatus.READY && mediaAsset.Key is not null)
             {
                 (_, bool isFailure, string presignedUrl, Error? error) =
                     await _fileStorageProvider.GenerateDownloadUrlAsync(mediaAsset.Key);

@@ -1,5 +1,6 @@
 using CSharpFunctionalExtensions;
 using FileService.Core.FilesStorage;
+using FileService.Domain;
 using FileService.Domain.Assets;
 using Framework.Endpoints;
 using Microsoft.AspNetCore.Builder;
@@ -60,24 +61,31 @@ public sealed class DeleteMediaAssetHandler
                 return GeneralErrors.ValueIsRequired(nameof(uploadId));
 
             storageResult = await _fileStorageProvider.AbortMultipartUploadAsync(
-                mediaAsset.Key,
+                mediaAsset.UploadKey,
                 uploadId,
                 cancellationToken);
         }
         else if (mediaAsset.Status == MediaStatus.FAILED && !string.IsNullOrWhiteSpace(uploadId))
         {
             storageResult = await _fileStorageProvider.AbortMultipartUploadAsync(
-                mediaAsset.Key,
+                mediaAsset.UploadKey,
                 uploadId,
                 cancellationToken);
         }
         else
         {
-            storageResult = await _fileStorageProvider.DeleteAsync(mediaAsset.Key, cancellationToken);
+            storageResult = UnitResult.Success<Error>();
         }
 
         if (storageResult.IsFailure)
             return storageResult.Error;
+
+        foreach (StorageKey key in mediaAsset.GetStorageKeys())
+        {
+            UnitResult<Error> deleteResult = await _fileStorageProvider.DeleteAsync(key, cancellationToken);
+            if (deleteResult.IsFailure)
+                return deleteResult.Error;
+        }
 
         mediaAsset.MarkDeleted();
         await _mediaAssetsRepository.SaveAsync(cancellationToken);

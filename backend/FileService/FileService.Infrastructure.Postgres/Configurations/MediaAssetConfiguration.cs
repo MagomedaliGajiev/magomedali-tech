@@ -41,6 +41,10 @@ public sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAsse
             .HasColumnName("updated_at")
             .IsRequired();
 
+        builder.Property(asset => asset.DirectUpload).HasColumnName("direct_upload");
+        builder.Property(asset => asset.Version).HasColumnName("version").IsConcurrencyToken();
+        builder.Ignore(asset => asset.UploadKey);
+
         ConfigureMediaData(builder);
         ConfigureStorageKey(builder);
         ConfigureOwner(builder);
@@ -112,7 +116,11 @@ public sealed class MediaAssetConfiguration : IEntityTypeConfiguration<MediaAsse
             storageKey.Ignore(key => key.Value);
             storageKey.Ignore(key => key.FullPath);
         });
-        builder.Navigation(asset => asset.Key).IsRequired();
+        builder.Navigation(asset => asset.Key).IsRequired(false);
+
+        builder.OwnsOne(asset => asset.RawKey, storageKey =>
+            StorageKeyConfiguration.Configure(storageKey, "raw_storage"));
+        builder.Navigation(asset => asset.RawKey).IsRequired(false);
     }
 
     private static void ConfigureOwner(EntityTypeBuilder<MediaAsset> builder)

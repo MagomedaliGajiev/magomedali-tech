@@ -50,7 +50,10 @@ public class MediaAssetsRepository : IMediaAssetsRepository
         Expression<Func<MediaAsset, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
-        MediaAsset? mediaAsset = await _dbContext.MediaAssets.FirstOrDefaultAsync(predicate, cancellationToken);
+        MediaAsset? mediaAsset = await _dbContext.MediaAssets
+            .Include(asset => ((VideoAsset)asset).Process!)
+            .ThenInclude(process => process.Steps)
+            .FirstOrDefaultAsync(predicate, cancellationToken);
 
         if (mediaAsset is null)
             return GeneralErrors.NotFound(null, "медиа файл");

@@ -15,6 +15,7 @@ public static class DependencyInjectionExtensions
         IConfiguration configuration)
     {
         services.AddScoped<IMediaAssetsRepository, MediaAssetsRepository>();
+        services.AddScoped<IVideoProcessesRepository, VideoProcessesRepository>();
 
         services.AddDbContextPool<FileServiceDbContext>((serviceProvider, options) =>
         {

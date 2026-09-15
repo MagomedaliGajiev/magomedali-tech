@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -43,6 +44,8 @@ public class IntegrationTestsWebFactory : WebApplicationFactory<Program>, IAsync
 
     public new async Task DisposeAsync()
     {
+        await base.DisposeAsync();
+
         await _minioContainer.StopAsync();
         await _minioContainer.DisposeAsync();
 
@@ -61,6 +64,9 @@ public class IntegrationTestsWebFactory : WebApplicationFactory<Program>, IAsync
 
         builder.ConfigureTestServices(services =>
         {
+            services.RemoveAll<IDistributedCache>();
+            services.AddDistributedMemoryCache();
+
             services.RemoveAll<FileServiceDbContext>();
             services.RemoveAll<IReadDbContext>();
 

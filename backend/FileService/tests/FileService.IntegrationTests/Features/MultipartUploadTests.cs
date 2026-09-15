@@ -6,6 +6,7 @@ using FileService.Contracts;
 using FileService.Contracts.Dtos;
 using FileService.Core.Features;
 using FileService.Domain.Assets;
+using FileService.Domain.Processing;
 using FileService.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ using CompleteMultipartUploadRequest = FileService.Contracts.Dtos.CompleteMultip
 
 namespace FileService.IntegrationTests.Features;
 
+[Collection("File service")]
 public class MultipartUploadTests : FileServiceTestsBase
 {
     private readonly IntegrationTestsWebFactory _factory;
@@ -57,20 +59,27 @@ public class MultipartUploadTests : FileServiceTestsBase
             MediaAsset? mediaAsset = await db.MediaAssets.FirstOrDefaultAsync(
                 m => m.Id == startMultipartUploadResponse.MediaAssetId, cancellationToken);
 
-            Assert.Equal(MediaStatus.READY, mediaAsset?.Status);
+            Assert.Equal(MediaStatus.UPLOADED, mediaAsset?.Status);
             Assert.NotNull(mediaAsset);
+            Assert.Null(mediaAsset.Key);
+            Assert.NotNull(mediaAsset.RawKey);
+            VideoProcess process = await db.VideoProcesses.Include(item => item.Steps)
+                .SingleAsync(item => item.VideoAssetId == mediaAsset.Id, cancellationToken);
+            Assert.Equal(ProcessingStatus.IN_PROGRESS, process.Status);
+            Assert.Equal(4, process.Steps.Count);
+            Assert.All(process.Steps, step => Assert.Equal(StepStatus.PENDING, step.Status));
             Assert.Equal("lesson", mediaAsset.Owner.Context);
             Assert.Equal(ownerId, mediaAsset.Owner.EntityId);
 
             IAmazonS3 amazonS3client = _factory.Services.GetRequiredService<IAmazonS3>();
 
             GetObjectResponse objectResponse = await amazonS3client.GetObjectAsync(
-                mediaAsset.Key.Location,
-                mediaAsset.Key.Value,
+                mediaAsset.UploadKey.Location,
+                mediaAsset.UploadKey.Value,
                 cancellationToken);
 
             Assert.Equal(objectResponse.ContentLength, fileInfo.Length);
-            Assert.Equal(objectResponse.Key, mediaAsset.Key.Value);
+            Assert.Equal(objectResponse.Key, mediaAsset.UploadKey.Value);
         });
     }
 
@@ -91,8 +100,8 @@ public class MultipartUploadTests : FileServiceTestsBase
             MediaAsset mediaAsset = await db.MediaAssets.SingleAsync(
                 asset => asset.Id == upload.MediaAssetId,
                 cancellationToken);
-            bucketName = mediaAsset.Key.Location;
-            storageKey = mediaAsset.Key.Value;
+            bucketName = mediaAsset.UploadKey.Location;
+            storageKey = mediaAsset.UploadKey.Value;
         });
 
         IAmazonS3 amazonS3Client = _factory.Services.GetRequiredService<IAmazonS3>();
@@ -162,8 +171,8 @@ public class MultipartUploadTests : FileServiceTestsBase
             IAmazonS3 amazonS3Client = _factory.Services.GetRequiredService<IAmazonS3>();
             AmazonS3Exception exception = await Assert.ThrowsAnyAsync<AmazonS3Exception>(() =>
                 amazonS3Client.GetObjectAsync(
-                    mediaAsset.Key.Location,
-                    mediaAsset.Key.Value,
+                    mediaAsset.UploadKey.Location,
+                    mediaAsset.UploadKey.Value,
                     cancellationToken));
             Assert.Equal(System.Net.HttpStatusCode.NotFound, exception.StatusCode);
         });

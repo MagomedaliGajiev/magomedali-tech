@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Shared.SharedKernel;
 
 namespace FileService.Core.Features;
@@ -30,17 +31,20 @@ public sealed class StartMultipartUploadHandler
     private readonly IFileStorageProvider _fileStorageProvider;
     private readonly IChunkSizeCalculator _chunkSizeCalculator;
     private readonly IMediaAssetsRepository _mediaAssetsRepository;
+    private readonly MediaUploadOptions _uploadOptions;
 
     public StartMultipartUploadHandler(
         ILogger<StartMultipartUploadHandler> logger,
         IFileStorageProvider fileStorageProvider,
         IChunkSizeCalculator chunkSizeCalculator,
-        IMediaAssetsRepository mediaAssetsRepository)
+        IMediaAssetsRepository mediaAssetsRepository,
+        IOptions<MediaUploadOptions> uploadOptions)
     {
         _logger = logger;
         _fileStorageProvider = fileStorageProvider;
         _chunkSizeCalculator = chunkSizeCalculator;
         _mediaAssetsRepository = mediaAssetsRepository;
+        _uploadOptions = uploadOptions.Value;
     }
 
     public async Task<Result<StartMultipartUploadResponse, Error>> Handle(
@@ -77,7 +81,7 @@ public sealed class StartMultipartUploadHandler
             return mediaDataResult.Error;
 
         Result<MediaAsset, Error> mediaAssetResult = MediaAsset
-            .CreateForUpload(mediaDataResult.Value, owner.Value, assetType.Value);
+            .CreateForUpload(mediaDataResult.Value, owner.Value, assetType.Value, _uploadOptions.DirectUpload);
         if (mediaAssetResult.IsFailure)
             return mediaAssetResult.Error;
 
@@ -87,7 +91,7 @@ public sealed class StartMultipartUploadHandler
             return addResult.Error;
 
         Result<string, Error> startUploadResult = await _fileStorageProvider.StartMultipartUploadAsync(
-            mediaAsset.Key,
+            mediaAsset.UploadKey,
             mediaAsset.MediaData,
             cancellationToken);
         if (startUploadResult.IsFailure)
@@ -97,14 +101,14 @@ public sealed class StartMultipartUploadHandler
         }
 
         Result<IReadOnlyList<ChunkUploadUrl>, Error> chunkUploadUrlsResult = await _fileStorageProvider.GenerateAllChunksUploadUrlsAsync(
-            mediaAsset.Key,
+            mediaAsset.UploadKey,
             startUploadResult.Value,
             chunkCalculationResult.Value.TotalChunks,
             cancellationToken);
         if (chunkUploadUrlsResult.IsFailure)
         {
             await _fileStorageProvider.AbortMultipartUploadAsync(
-                mediaAsset.Key,
+                mediaAsset.UploadKey,
                 startUploadResult.Value,
                 CancellationToken.None);
             await MarkFailed(mediaAsset);
@@ -115,7 +119,7 @@ public sealed class StartMultipartUploadHandler
         _logger.LogInformation(
             "Media asset {MediaAssetId} started uploading with key {StorageKey}",
             mediaAsset.Id,
-            mediaAsset.Key);
+            mediaAsset.UploadKey);
 
         return new StartMultipartUploadResponse(
             mediaAsset.Id,

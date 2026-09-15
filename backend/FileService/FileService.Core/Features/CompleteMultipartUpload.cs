@@ -3,6 +3,7 @@ using FileService.Contracts;
 using FileService.Contracts.Dtos;
 using FileService.Core.FilesStorage;
 using FileService.Domain.Assets;
+using FileService.Domain.Processing;
 using Framework.Endpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
@@ -28,15 +29,18 @@ public sealed class CompleteMultipartUploadHandler
     private readonly ILogger<CompleteMultipartUploadHandler> _logger;
     private readonly IFileStorageProvider _fileStorageProvider;
     private readonly IMediaAssetsRepository _mediaAssetsRepository;
+    private readonly TimeProvider _timeProvider;
 
     public CompleteMultipartUploadHandler(
         ILogger<CompleteMultipartUploadHandler> logger,
         IFileStorageProvider fileStorageProvider,
-        IMediaAssetsRepository mediaAssetsRepository)
+        IMediaAssetsRepository mediaAssetsRepository,
+        TimeProvider timeProvider)
     {
         _logger = logger;
         _fileStorageProvider = fileStorageProvider;
         _mediaAssetsRepository = mediaAssetsRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<UnitResult<Error>> Handle(
@@ -66,7 +70,7 @@ public sealed class CompleteMultipartUploadHandler
         }
 
         Result<string, Error> completeResult = await _fileStorageProvider.CompleteMultipartUploadAsync(
-            mediaAsset.Key,
+            mediaAsset.UploadKey,
             request.UploadId,
             request.PartETags,
             cancellationToken);
@@ -83,11 +87,22 @@ public sealed class CompleteMultipartUploadHandler
         if (markUploadedResult.IsFailure)
             return markUploadedResult.Error;
 
-        // Raw uploads are immediately downloadable until a separate media
-        // processing pipeline is introduced.
-        UnitResult<Error> markReadyResult = mediaAsset.MarkReady();
-        if (markReadyResult.IsFailure)
-            return markReadyResult.Error;
+        if (mediaAsset is VideoAsset videoAsset && videoAsset.RequiresProcessing())
+        {
+            Result<VideoProcess, Error> processResult = VideoProcess.Create(videoAsset, _timeProvider.GetUtcNow().UtcDateTime);
+            if (processResult.IsFailure)
+                return processResult.Error;
+
+            _logger.LogInformation(
+                "Created video process {VideoProcessId} for asset {MediaAssetId}",
+                processResult.Value.Id, mediaAsset.Id);
+        }
+        else
+        {
+            UnitResult<Error> markReadyResult = mediaAsset.MarkReady();
+            if (markReadyResult.IsFailure)
+                return markReadyResult.Error;
+        }
 
         await _mediaAssetsRepository.SaveAsync(cancellationToken);
 

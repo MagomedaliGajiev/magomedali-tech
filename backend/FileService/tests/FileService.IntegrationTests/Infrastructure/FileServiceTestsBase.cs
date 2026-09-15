@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FileService.IntegrationTests.Infrastructure;
 
-public class FileServiceTestsBase : IClassFixture<IntegrationTestsWebFactory>
+public class FileServiceTestsBase
 {
     public const string TEST_FILE_NAME = "test-file.mp4";
     protected FileServiceTestsBase(IntegrationTestsWebFactory factory)

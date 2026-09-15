@@ -49,10 +49,10 @@ public sealed class GetMediaAssetsUploadHandler
             .ToListAsync(cancellationToken);
 
         var readyMediaAssets = mediaAssets
-            .Where(m => m.Status == MediaStatus.READY)
+            .Where(m => m.Status == MediaStatus.READY && m.Key is not null)
             .ToList();
 
-        var keys = readyMediaAssets.Select(m => m.Key).ToList();
+        var keys = readyMediaAssets.Select(m => m.Key!).ToList();
 
         Result<IReadOnlyDictionary<StorageKey, string>, Error> urlsResult = await _presignedUrlCache
             .GetAsync(keys, cancellationToken);
@@ -65,7 +65,8 @@ public sealed class GetMediaAssetsUploadHandler
         {
             string? downloadUrl = null;
 
-            if (urlsResult.Value.TryGetValue(mediaAsset.Key, out string? url))
+            if (mediaAsset.Status == MediaStatus.READY && mediaAsset.Key is not null &&
+                urlsResult.Value.TryGetValue(mediaAsset.Key, out string? url))
             {
                 downloadUrl = url;
             }
