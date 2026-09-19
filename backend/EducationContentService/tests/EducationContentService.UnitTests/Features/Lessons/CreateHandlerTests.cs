@@ -38,6 +38,17 @@ public class CreateHandlerTests
     }
 
     [Fact]
+    public async Task Validator_AllowsMissingVideoId()
+    {
+        var validator = new CreateLessonRequestValidator();
+        var request = new CreateLessonRequest(Guid.NewGuid(), "Lesson", "Description", null);
+
+        ValidationResult result = await validator.ValidateAsync(request);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
     public async Task Handle_ReturnsNotFound_WhenVideoDoesNotExist()
     {
         Guid videoId = Guid.NewGuid();
@@ -88,6 +99,23 @@ public class CreateHandlerTests
         Assert.NotNull(repository.AddedLesson);
         Assert.Equal(lessonId, repository.AddedLesson.Id);
         Assert.Equal(videoId, repository.AddedLesson.VideoId);
+    }
+
+    [Fact]
+    public async Task Handle_CreatesLesson_WithoutVideo()
+    {
+        Guid lessonId = Guid.NewGuid();
+        var repository = new RecordingLessonsRepository();
+        CreateHandler sut = CreateHandler(repository, []);
+
+        Result<Guid, Error> result = await sut.Handle(
+            new CreateLessonRequest(lessonId, "Lesson", "Description", null),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(repository.AddedLesson);
+        Assert.Equal(lessonId, repository.AddedLesson.Id);
+        Assert.Null(repository.AddedLesson.VideoId);
     }
 
     private static CreateHandler CreateHandler(

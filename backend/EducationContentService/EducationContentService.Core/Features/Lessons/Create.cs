@@ -31,8 +31,8 @@ public class CreateLessonRequestValidator : AbstractValidator<CreateLessonReques
             .MustBeValueObject(Description.Create);
 
         RuleFor(r => r.VideoId)
-            .NotEmpty()
-            .WithError(GeneralErrors.ValueIsRequired("videoId"));
+            .Must(videoId => !videoId.HasValue || videoId.Value != Guid.Empty)
+            .WithError(GeneralErrors.ValueIsInvalid("videoId"));
     }
 }
 
@@ -77,20 +77,23 @@ public sealed class CreateHandler
             return validationResult.ToError();
         }
 
-        Result<GetMediaAssetsResponse, Error> mediaAssetsResult = await _fileCommunicationService
-            .GetMediaAssets(new GetMediaAssetsRequest([request.VideoId]), cancellationToken);
+        if (request.VideoId.HasValue)
+        {
+            Result<GetMediaAssetsResponse, Error> mediaAssetsResult = await _fileCommunicationService
+                .GetMediaAssets(new GetMediaAssetsRequest([request.VideoId.Value]), cancellationToken);
 
-        if (mediaAssetsResult.IsFailure)
-            return mediaAssetsResult.Error;
+            if (mediaAssetsResult.IsFailure)
+                return mediaAssetsResult.Error;
 
-        GetMediaAssetsDto? video = mediaAssetsResult.Value.MediaAssets
-            .FirstOrDefault(mediaAsset => mediaAsset.Id == request.VideoId);
+            GetMediaAssetsDto? video = mediaAssetsResult.Value.MediaAssets
+                .FirstOrDefault(mediaAsset => mediaAsset.Id == request.VideoId.Value);
 
-        if (video is null)
-            return GeneralErrors.NotFound(request.VideoId, "video");
+            if (video is null)
+                return GeneralErrors.NotFound(request.VideoId.Value, "video");
 
-        if (!string.Equals(video.AssetType, VIDEO_ASSET_TYPE, StringComparison.OrdinalIgnoreCase))
-            return GeneralErrors.ValueIsInvalid("videoId");
+            if (!string.Equals(video.AssetType, VIDEO_ASSET_TYPE, StringComparison.OrdinalIgnoreCase))
+                return GeneralErrors.ValueIsInvalid("videoId");
+        }
 
         Title title = Title.Create(request.Title).Value;
         Description description = Description.Create(request.Description).Value;

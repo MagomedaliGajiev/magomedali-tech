@@ -1,7 +1,13 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CheckCircle2, LoaderCircle, Plus, UploadCloud } from "lucide-react";
+import {
+  CheckCircle2,
+  LoaderCircle,
+  Plus,
+  UploadCloud,
+  VideoOff,
+} from "lucide-react";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
@@ -71,6 +77,13 @@ export function CreateLessonForm({
   };
 
   const handleCancel = () => {
+    const currentVideoId = getValues("videoId");
+    if (currentVideoId) {
+      void filesApi.deleteMediaAsset(currentVideoId).catch((error: unknown) => {
+        console.error("Не удалось удалить видео отменённого урока", error);
+      });
+    }
+
     reset();
     createLessonMutation.reset();
     setIsVideoUploadOpen(false);
@@ -102,6 +115,22 @@ export function CreateLessonForm({
     }
 
     setIsVideoUploadOpen(true);
+  };
+
+  const handleRemoveVideo = () => {
+    const currentVideoId = getValues("videoId");
+    if (!currentVideoId) {
+      return;
+    }
+
+    setValue("videoId", "", {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    void filesApi.deleteMediaAsset(currentVideoId).catch((error: unknown) => {
+      console.error("Не удалось удалить непривязанное видео", error);
+    });
   };
 
   return (
@@ -180,18 +209,33 @@ export function CreateLessonForm({
                 </span>
               ) : null}
             </span>
-            <Button
-              type="button"
-              size="sm"
-              variant={videoId ? "outline" : "default"}
-              disabled={isSubmitting}
-              onClick={handleOpenVideoUpload}
-            >
-              {videoId ? "Заменить" : "Загрузить"}
-            </Button>
+            <span className="flex items-center gap-2">
+              {videoId ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  disabled={isSubmitting}
+                  onClick={handleRemoveVideo}
+                >
+                  <VideoOff className="size-4" aria-hidden="true" />
+                  Убрать
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant={videoId ? "outline" : "default"}
+                disabled={isSubmitting}
+                onClick={handleOpenVideoUpload}
+              >
+                {videoId ? "Заменить" : "Загрузить"}
+              </Button>
+            </span>
           </div>
           <FieldDescription id="create-lesson-video-id-description">
-            Файл загружается частями и обрабатывается после создания урока.
+            Необязательно. Файл загружается частями и обрабатывается после
+            создания урока.
           </FieldDescription>
           {errors.videoId ? (
             <FieldError id="create-lesson-video-id-error">

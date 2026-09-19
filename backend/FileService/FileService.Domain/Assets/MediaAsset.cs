@@ -15,7 +15,16 @@ public abstract class MediaAsset
 
     public DateTime UpdatedAt { get; protected set; } = DateTime.UtcNow;
 
-    public StorageKey Key { get; protected set; } = null!;
+    public Guid Version { get; protected set; } = Guid.NewGuid();
+
+    public StorageKey? Key { get; protected set; }
+
+    public StorageKey? RawKey { get; protected set; }
+
+    public bool DirectUpload { get; protected set; }
+
+    public StorageKey UploadKey => (DirectUpload ? Key : RawKey)
+        ?? throw new InvalidOperationException("Media asset has no upload key.");
 
     public MediaOwner Owner { get; protected set; } = null!;
 
@@ -31,7 +40,8 @@ public abstract class MediaAsset
         MediaOwner owner,
         MediaStatus status,
         AssetType assetType,
-        StorageKey key)
+        StorageKey uploadKey,
+        bool directUpload = true)
     {
         Id = id;
         MediaData = mediaData;
@@ -40,20 +50,23 @@ public abstract class MediaAsset
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = CreatedAt;
         AssetType = assetType;
-        Key = key;
+        DirectUpload = directUpload;
+        Key = directUpload ? uploadKey : null;
+        RawKey = directUpload ? null : uploadKey;
     }
 
     public static Result<MediaAsset, Error> CreateForUpload(
         MediaData mediaData,
         MediaOwner owner,
-        AssetType assetType)
+        AssetType assetType,
+        bool directUpload = false)
     {
         var assetId = Guid.NewGuid();
 
         switch (assetType)
         {
             case AssetType.VIDEO:
-                Result<VideoAsset, Error> videoResult = VideoAsset.CreateForUpload(assetId, mediaData, owner);
+                Result<VideoAsset, Error> videoResult = VideoAsset.CreateForUpload(assetId, mediaData, owner, directUpload);
                 return videoResult.IsFailure ? videoResult.Error : videoResult.Value;
             case AssetType.PREVIEW:
                 Result<PreviewAsset, Error> previewResult = PreviewAsset.CreateForUpload(assetId, mediaData, owner);
@@ -64,6 +77,11 @@ public abstract class MediaAsset
         }
     }
 
+    public virtual bool RequiresProcessing() => false;
+
+    public virtual IReadOnlyList<StorageKey> GetStorageKeys() =>
+        new[] { RawKey, Key }.OfType<StorageKey>().Distinct().ToList();
+
     public UnitResult<Error> MarkUploaded()
     {
         if (Status != MediaStatus.UPLOADING)
@@ -71,17 +89,22 @@ public abstract class MediaAsset
 
         Status = MediaStatus.UPLOADED;
         UpdatedAt = DateTime.UtcNow;
+        Version = Guid.NewGuid();
 
         return UnitResult.Success<Error>();
     }
 
-    public UnitResult<Error> MarkReady()
+    public virtual UnitResult<Error> MarkReady()
     {
         if (Status != MediaStatus.UPLOADED)
             return GeneralErrors.Failure($"Нельзя пометить медиафайл готовым в статусе {Status}");
 
+        if (Key is null)
+            return GeneralErrors.Failure("Для готового медиафайла необходим финальный ключ");
+
         Status = MediaStatus.READY;
         UpdatedAt = DateTime.UtcNow;
+        Version = Guid.NewGuid();
 
         return UnitResult.Success<Error>();
     }
@@ -90,16 +113,18 @@ public abstract class MediaAsset
     {
         Status = MediaStatus.FAILED;
         UpdatedAt = DateTime.UtcNow;
+        Version = Guid.NewGuid();
         return UnitResult.Success<Error>();
     }
 
-    public UnitResult<Error> MarkDeleted()
+    public virtual UnitResult<Error> MarkDeleted()
     {
         if (Status == MediaStatus.DELETED)
             return UnitResult.Success<Error>();
 
         Status = MediaStatus.DELETED;
         UpdatedAt = DateTime.UtcNow;
+        Version = Guid.NewGuid();
         return UnitResult.Success<Error>();
     }
 }

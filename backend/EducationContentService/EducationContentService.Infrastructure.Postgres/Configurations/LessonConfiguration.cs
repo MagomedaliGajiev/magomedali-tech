@@ -45,7 +45,8 @@ public class LessonConfiguration : IEntityTypeConfiguration<Lesson>
             .IsRequired();
 
         builder.Property(l => l.VideoId)
-            .HasColumnName("video_id");
+            .HasColumnName("video_id")
+            .IsRequired(false);
 
         builder.Property(l => l.CreatedAt)
             .HasColumnName("created_at")

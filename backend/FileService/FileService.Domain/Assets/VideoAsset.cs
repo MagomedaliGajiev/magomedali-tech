@@ -1,4 +1,5 @@
 ﻿using CSharpFunctionalExtensions;
+using FileService.Domain.Processing;
 using Shared.SharedKernel;
 
 namespace FileService.Domain.Assets;
@@ -13,6 +14,10 @@ public class VideoAsset : MediaAsset
 
     public static readonly string[] AllowedExtensions = ["mp4", "mkv", "avi", "mov"];
 
+    public StorageKey? PreviewKey { get; private set; }
+
+    public VideoProcess? Process { get; private set; }
+
     private VideoAsset()
     {
     }
@@ -22,8 +27,9 @@ public class VideoAsset : MediaAsset
         MediaData mediaData,
         MediaOwner owner,
         MediaStatus status,
-        StorageKey key)
-        : base(id, mediaData, owner, status, AssetType.VIDEO, key)
+        StorageKey key,
+        bool directUpload)
+        : base(id, mediaData, owner, status, AssetType.VIDEO, key, directUpload)
     {
     }
 
@@ -47,7 +53,11 @@ public class VideoAsset : MediaAsset
         return UnitResult.Success<Error>();
     }
 
-    public static Result<VideoAsset, Error> CreateForUpload(Guid id, MediaData mediaData, MediaOwner owner)
+    public static Result<VideoAsset, Error> CreateForUpload(
+        Guid id,
+        MediaData mediaData,
+        MediaOwner owner,
+        bool directUpload = false)
     {
         UnitResult<Error> validationResult = Validate(mediaData);
         if (validationResult.IsFailure)
@@ -62,6 +72,34 @@ public class VideoAsset : MediaAsset
             mediaData,
             owner,
             MediaStatus.UPLOADING,
-            key.Value);
+            key.Value,
+            directUpload);
+    }
+
+    public override bool RequiresProcessing() => !DirectUpload;
+
+    public override IReadOnlyList<StorageKey> GetStorageKeys() =>
+        base.GetStorageKeys().Concat(new[] { PreviewKey }.OfType<StorageKey>()).Distinct().ToList();
+
+    public override UnitResult<Error> MarkReady()
+    {
+        if (RequiresProcessing() && Process?.Status != ProcessingStatus.COMPLETED)
+            return GeneralErrors.Failure("Обработка видео ещё не завершена");
+
+        return base.MarkReady();
+    }
+
+    public override UnitResult<Error> MarkDeleted()
+    {
+        Process?.Cancel(DateTime.UtcNow);
+        return base.MarkDeleted();
+    }
+
+    internal void AttachProcess(VideoProcess process) => Process = process;
+
+    internal void SetProcessedKeys(StorageKey key, StorageKey? previewKey)
+    {
+        Key = key;
+        PreviewKey = previewKey;
     }
 }

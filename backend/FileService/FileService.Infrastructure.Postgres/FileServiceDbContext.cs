@@ -1,5 +1,6 @@
 ﻿using FileService.Core;
 using FileService.Domain.Assets;
+using FileService.Domain.Processing;
 using Microsoft.EntityFrameworkCore;
 
 namespace FileService.Infrastructure.Postgres;
@@ -13,7 +14,11 @@ public class FileServiceDbContext : DbContext, IReadDbContext
 
     public DbSet<MediaAsset> MediaAssets => Set<MediaAsset>();
 
+    public DbSet<VideoProcess> VideoProcesses => Set<VideoProcess>();
+
     public IQueryable<MediaAsset> MediaAssetsQuery => MediaAssets.AsQueryable().AsNoTracking();
+
+    public IQueryable<VideoProcess> VideoProcessesQuery => VideoProcesses.AsNoTracking();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

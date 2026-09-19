@@ -4,7 +4,7 @@ namespace EducationContentService.Domain.Lessons;
 
 public sealed class Lesson
 {
-    public Lesson(Guid? id, Title title, Description description, Guid videoId)
+    public Lesson(Guid? id, Title title, Description description, Guid? videoId)
     {
         Id = id ?? Guid.NewGuid();
         Title = title;
@@ -51,7 +51,7 @@ public sealed class Lesson
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void UpdateVideo(Guid videoId)
+    public void UpdateVideoId(Guid? videoId)
     {
         VideoId = videoId;
         UpdatedAt = DateTime.UtcNow;
