@@ -14,6 +14,8 @@ public class VideoAsset : MediaAsset
 
     public static readonly string[] AllowedExtensions = ["mp4", "mkv", "avi", "mov"];
 
+    public VideoMetadata? Metadata { get; private set; }
+
     public StorageKey? PreviewKey { get; private set; }
 
     public VideoProcess? Process { get; private set; }
@@ -93,6 +95,17 @@ public class VideoAsset : MediaAsset
     {
         Process?.Cancel(DateTime.UtcNow);
         return base.MarkDeleted();
+    }
+
+    public UnitResult<Error> SetMetadata(VideoMetadata metadata)
+    {
+        if (Status != MediaStatus.UPLOADED)
+            return GeneralErrors.Failure("Метаданные можно изменить только для загруженного видео");
+
+        Metadata = metadata;
+        UpdatedAt = DateTime.UtcNow;
+        Version = Guid.NewGuid();
+        return UnitResult.Success<Error>();
     }
 
     internal void AttachProcess(VideoProcess process) => Process = process;

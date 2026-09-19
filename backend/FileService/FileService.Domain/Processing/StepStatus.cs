@@ -6,4 +6,5 @@ public enum StepStatus
     IN_PROGRESS,
     COMPLETED,
     FAILED,
+    SKIPPED,
 }

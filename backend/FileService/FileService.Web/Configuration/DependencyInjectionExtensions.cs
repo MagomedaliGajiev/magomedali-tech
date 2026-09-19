@@ -1,6 +1,7 @@
 ﻿using FileService.Core;
 using FileService.Infrastructure.Postgres;
 using FileService.Infrastructure.S3;
+using FileService.VideoProcessing;
 using Framework.Endpoints;
 using Framework.Logging;
 using Framework.Swagger;
@@ -37,6 +38,7 @@ public static class DependencyInjectionExtensions
 
         services
             .AddCore()
+            .AddVideoProcessing()
             .AddInfrastructurePostgres(configuration);
 
         return services;

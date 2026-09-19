@@ -9,12 +9,12 @@ namespace FileService.Core.Processing;
 // Called by a step executor after it has performed the actual media operation.
 public sealed class VideoProcessingService
 {
-    private readonly IVideoProcessesRepository _repository;
+    private readonly IVideoProcessingRepository _repository;
     private readonly TimeProvider _timeProvider;
     private readonly ILogger<VideoProcessingService> _logger;
 
     public VideoProcessingService(
-        IVideoProcessesRepository repository,
+        IVideoProcessingRepository repository,
         TimeProvider timeProvider,
         ILogger<VideoProcessingService> logger)
     {

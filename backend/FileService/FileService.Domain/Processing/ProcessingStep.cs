@@ -106,6 +106,29 @@ public sealed class ProcessingStep
         return UnitResult.Success<Error>();
     }
 
+    public UnitResult<Error> Skip(string errorMessage, DateTime utcNow)
+    {
+        UnitResult<Error> result = Fail(errorMessage, false, utcNow);
+        if (result.IsFailure)
+            return result.Error;
+
+        Status = StepStatus.SKIPPED;
+        NextRetryAt = null;
+        return UnitResult.Success<Error>();
+    }
+
+    public UnitResult<Error> Cancel()
+    {
+        if (Status != StepStatus.IN_PROGRESS)
+            return GeneralErrors.Failure($"Нельзя отменить шаг в статусе {Status}");
+
+        Status = StepStatus.PENDING;
+        AttemptId = null;
+        StartedAt = null;
+        CompletedAt = null;
+        return UnitResult.Success<Error>();
+    }
+
     public UnitResult<Error> Reset(DateTime utcNow)
     {
         if (!CanRetry)

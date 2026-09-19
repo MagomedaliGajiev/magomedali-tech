@@ -31,7 +31,7 @@ public sealed class VideoProcess
     public IReadOnlyList<ProcessingStep> Steps => _steps.AsReadOnly();
 
     public ProcessingStep? CurrentStep => _steps.OrderBy(step => step.Order)
-        .FirstOrDefault(step => step.Status != StepStatus.COMPLETED);
+        .FirstOrDefault(step => step.Status is not (StepStatus.COMPLETED or StepStatus.SKIPPED));
 
     private VideoProcess()
     {
@@ -111,7 +111,7 @@ public sealed class VideoProcess
             return GeneralErrors.Failure("Указанный шаг сейчас не выполняется");
         }
 
-        bool isLastStep = _steps.All(item => item.Id == stepId || item.Status == StepStatus.COMPLETED);
+        bool isLastStep = _steps.All(item => item.Id == stepId || item.Status is StepStatus.COMPLETED or StepStatus.SKIPPED);
         if (isLastStep && finalKey is null)
             return GeneralErrors.ValueIsRequired(nameof(finalKey));
         if (!isLastStep && (finalKey is not null || previewKey is not null))
@@ -170,11 +170,47 @@ public sealed class VideoProcess
         return UnitResult.Success<Error>();
     }
 
+    public UnitResult<Error> SkipCurrentStep(Guid stepId, Guid attemptId, string errorMessage, DateTime utcNow)
+    {
+        ProcessingStep? step = CurrentStep;
+        if (Status != ProcessingStatus.IN_PROGRESS || VideoAsset.Status != MediaStatus.UPLOADED ||
+            step is null || step.Id != stepId || step.AttemptId != attemptId)
+        {
+            return GeneralErrors.Failure("Указанный шаг сейчас не выполняется");
+        }
+
+        if (!_steps.Any(item => item.Order > step.Order))
+            return GeneralErrors.Failure("Нельзя пропустить последний шаг: итоговый файл не сохранён");
+
+        UnitResult<Error> result = step.Skip(errorMessage, utcNow);
+        if (result.IsFailure)
+            return result.Error;
+
+        RecalculateProgress();
+        Touch(utcNow);
+        return UnitResult.Success<Error>();
+    }
+
+    public UnitResult<Error> CancelCurrentStep(Guid stepId, Guid attemptId, DateTime utcNow)
+    {
+        ProcessingStep? step = CurrentStep;
+        if (Status != ProcessingStatus.IN_PROGRESS || step is null || step.Id != stepId || step.AttemptId != attemptId)
+            return GeneralErrors.Failure("Указанный шаг сейчас не выполняется");
+
+        UnitResult<Error> result = step.Cancel();
+        if (result.IsFailure)
+            return result.Error;
+
+        Touch(utcNow);
+        return UnitResult.Success<Error>();
+    }
+
     public void RecalculateProgress()
     {
         decimal totalWeight = _steps.Sum(step => (decimal)step.Weight);
         Progress = totalWeight == 0 ? 0 :
-            _steps.Where(step => step.Status == StepStatus.COMPLETED).Sum(step => (decimal)step.Weight) / totalWeight * 100;
+            _steps.Where(step => step.Status is StepStatus.COMPLETED or StepStatus.SKIPPED)
+                .Sum(step => (decimal)step.Weight) / totalWeight * 100;
     }
 
     internal void Cancel(DateTime utcNow)

@@ -196,8 +196,8 @@ public sealed class VideoProcessingIntegrationTests : FileServiceTestsBase
 
         await using AsyncServiceScope firstScope = Services.CreateAsyncScope();
         await using AsyncServiceScope secondScope = Services.CreateAsyncScope();
-        var firstRepository = firstScope.ServiceProvider.GetRequiredService<IVideoProcessesRepository>();
-        var secondRepository = secondScope.ServiceProvider.GetRequiredService<IVideoProcessesRepository>();
+        var firstRepository = firstScope.ServiceProvider.GetRequiredService<IVideoProcessingRepository>();
+        var secondRepository = secondScope.ServiceProvider.GetRequiredService<IVideoProcessingRepository>();
         VideoProcess first = (await firstRepository.GetById(process.Id, CancellationToken.None)).Value;
         VideoProcess second = (await secondRepository.GetById(process.Id, CancellationToken.None)).Value;
         first.ProcessNextStep(DateTime.UtcNow);

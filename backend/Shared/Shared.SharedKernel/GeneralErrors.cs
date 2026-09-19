@@ -25,6 +25,21 @@ public static class GeneralErrors
         return Error.Conflict("record.already.exist", "Запись уже существует");
     }
 
+    public static Error ConcurrencyConflict()
+    {
+        return Error.Conflict("concurrency.conflict", "Данные были изменены другим процессом. Загрузите актуальное состояние");
+    }
+
+    public static Error OperationCancelled()
+    {
+        return Error.Failure("operation.canceled", "Операция была отменена");
+    }
+
+    public static Error DatabaseError()
+    {
+        return Error.Failure("database.error", "Ошибка при сохранении данных в базе данных");
+    }
+
     public static Error Failure(string? message = null)
     {
         return Error.Failure("server.failure", message ?? "Серверная ошибка");

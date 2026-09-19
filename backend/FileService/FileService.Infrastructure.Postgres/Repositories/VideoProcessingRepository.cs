@@ -1,3 +1,4 @@
+﻿using System.Linq.Expressions;
 using CSharpFunctionalExtensions;
 using FileService.Core;
 using FileService.Domain.Processing;
@@ -6,24 +7,31 @@ using Shared.SharedKernel;
 
 namespace FileService.Infrastructure.Postgres.Repositories;
 
-public sealed class VideoProcessesRepository : IVideoProcessesRepository
+public sealed class VideoProcessingRepository : IVideoProcessingRepository
 {
     private readonly FileServiceDbContext _dbContext;
 
-    public VideoProcessesRepository(FileServiceDbContext dbContext)
+    public VideoProcessingRepository(FileServiceDbContext dbContext)
     {
         _dbContext = dbContext;
     }
 
-    public async Task<Result<VideoProcess, Error>> GetById(Guid id, CancellationToken cancellationToken)
+    public void Add(VideoProcess process) => _dbContext.VideoProcesses.Add(process);
+
+    public Task<Result<VideoProcess, Error>> GetById(Guid id, CancellationToken cancellationToken) =>
+        GetBy(process => process.Id == id, cancellationToken);
+
+    public async Task<Result<VideoProcess, Error>> GetBy(
+        Expression<Func<VideoProcess, bool>> predicate,
+        CancellationToken cancellationToken = default)
     {
         VideoProcess? process = await _dbContext.VideoProcesses
             .Include(item => item.VideoAsset)
             .Include(item => item.Steps)
-            .SingleOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .SingleOrDefaultAsync(predicate, cancellationToken);
 
         if (process is null)
-            return GeneralErrors.NotFound(id, "процесс обработки видео");
+            return GeneralErrors.NotFound(null, "процесс обработки видео");
 
         return process;
     }

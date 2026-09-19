@@ -2,6 +2,7 @@
 
     <PropertyGroup>
       <PackageId>Magomedali.Shared.SharedKernel</PackageId>
+      <Version>1.0.0-preview.7</Version>
     </PropertyGroup>
 
     <ItemGroup>
